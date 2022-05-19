@@ -58,3 +58,14 @@ class TestFTDCDecode:
                     record_count += 1
 
             assert record_count == test["doc_count"]
+
+    @pytest.mark.asyncio
+    async def test_async_ftdc_rollup_streaming_with_memory(self, test_data) -> None:
+        for test in test_data:
+            async with async_open(test["ftdc_file"], "rb") as file:
+                record_count = 0
+                async for ftdc_row in FTDC(file.iter_chunked(1000), memory=10000):
+                    validateFTDCRecord(ftdc_row)
+                    record_count += 1
+
+            assert record_count == test["doc_count"]

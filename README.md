@@ -52,15 +52,25 @@ async def decode_ftdc():
 
 asyncio.run(decode_ftdc())
 ```
+
+## Getting Started - Developers
+
+Getting the code:
+```
 $ git clone git@github.com:mongodb/ftdc-tools.git
 $ cd ftdc-tools
+```
 
 Installation
+
 ```
 $ pip install poetry
 $ poetry install
 ```
+
 Testing/linting:
 ```
+$ poetry run black ftdc_tools tests
+$ poetry run isort ftdc_tools tests
 $ poetry run pytest
 ```

@@ -1,8 +1,9 @@
 import pytest
+from typing import List, Dict
 
 
 @pytest.fixture
-def test_data() -> str:
+def test_data() -> List[Dict[str, object]]:
     return [
         {
             "ftdc_file": "./tests/test_bson_files/test_data_ftdc_file_0_doc",
