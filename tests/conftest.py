@@ -1,5 +1,6 @@
+from typing import Dict, List
+
 import pytest
-from typing import List, Dict
 
 
 @pytest.fixture

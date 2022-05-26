@@ -1,8 +1,18 @@
+"""Package to decode FTDC data."""
 import collections
 import struct
 import zlib
-from typing import (AsyncGenerator, AsyncIterator, ByteString, Dict, Generator,
-                    Iterator, Tuple, Union)
+
+from typing import (
+    AsyncGenerator,
+    AsyncIterator,
+    ByteString,
+    Dict,
+    Generator,
+    Iterator,
+    Tuple,
+    Union,
+)
 
 _int32 = struct.Struct("<i")
 _uint32 = struct.Struct("<I")
@@ -12,27 +22,39 @@ _double = struct.Struct("<d")
 
 
 class Chunk(collections.OrderedDict):
+    """Defines a chuck of BSON data."""
+
     bson_len: int
     chunk_len: int
     nsamples: int
 
 
 class FTDC(collections.abc.Iterable):
+    """
+    Defines a FTDC object that can decode binary FTDC data.
+
+    The class is a iterate and take bystring or a Iterator/AsysnIterator as input. The object can be
+    iterated upon to get the decoded FTDC data.
+    """
+
     def __init__(
         self, ftdc_data: Union[AsyncIterator, Iterator, ByteString], memory: int = None
     ) -> None:
+        """Will initialize FTDC object and validate the provided input."""
         if (
             not isinstance(ftdc_data, Iterator)
             and not isinstance(ftdc_data, bytes)
             and not isinstance(ftdc_data, AsyncIterator)
         ):
             raise ValueError(
-                "Invalid FTDC data. The FTDC data should either be an Iterator/AsyncIterator or ByteString"
+                "Invalid FTDC data. The FTDC data should either be an"
+                " Iterator/AsyncIterator or ByteString"
             )
         self.raw = ftdc_data
         self.memory = memory
 
     async def __aiter__(self) -> AsyncGenerator[Dict[Tuple, int], None]:
+        """Will aysnc iterate on the byte string and returing a generator with decoded data."""
         if not isinstance(self.raw, AsyncIterator):
             raise ValueError(
                 "Async interation not supported. FTDC data is not of type AsyncIterator"
@@ -80,11 +102,10 @@ class FTDC(collections.abc.Iterable):
                     raise
 
     def __iter__(self) -> Generator[Dict[Tuple, int], None, None]:
+        """Will iterate on the byte string and returing a generator with decoded data."""
         if isinstance(self.raw, bytes):
             gen = self.getftdc(self.raw)
-            print("Here..")
-            print(self.raw)
-            for x, doc_len, buf in gen:
+            for x, _doc_len, _buf in gen:
                 if x is not None:
                     yield x
         elif isinstance(self.raw, Iterator):
@@ -124,6 +145,15 @@ class FTDC(collections.abc.Iterable):
     ) -> Generator[
         Tuple[Union[Dict[Tuple, int], None], Union[None, int], int], Chunk, None
     ]:
+        """
+        Will take a BSON chuck or bytes string as input and decode it.
+
+        Args:
+            chunk: This is byststring or chuck that needs to be decoded
+
+        Returns:
+            A generator key values pairs of the decoded data.
+        """
         frame = bytearray()
         frame.extend(chunk)
         while True:
@@ -173,10 +203,10 @@ class FTDC(collections.abc.Iterable):
                     v = int(v)
                 frame = frame[8:]
             elif bson_type == 2:  # string
-                l = _uint32.unpack_from(frame, 0)[0]
+                p = _uint32.unpack_from(frame, 0)[0]
                 frame = frame[4:]
-                v = frame[: l - 1] if not ftdc else None
-                frame = frame[l:]
+                v = frame[: p - 1] if not ftdc else None
+                frame = frame[p:]
             elif bson_type == 3:  # subdoc
                 v, _ = self._read_bson_doc(frame, ftdc=ftdc)
                 frame = frame[v.bson_len :]
@@ -190,10 +220,10 @@ class FTDC(collections.abc.Iterable):
                 v = frame[0]
                 frame = frame[1:]
             elif bson_type == 5:  # bindata
-                l = _uint32.unpack_from(frame, 0)[0]
+                p = _uint32.unpack_from(frame, 0)[0]
                 frame = frame[5:]
-                v = frame[:l] if not ftdc else None
-                frame = frame[l:]
+                v = frame[:p] if not ftdc else None
+                frame = frame[p:]
             elif bson_type == 7:  # objectid
                 v = None  # xxx always ignore for now
                 frame = frame[12:]
@@ -216,7 +246,7 @@ class FTDC(collections.abc.Iterable):
                 frame = frame[8:]
             elif bson_type == 0xFF or bson_type == 0x7F:  # minkey, maxkey
                 v = None  # xxx always ignore for now
-                l = 0
+                p = 0
             else:
                 err_msg = "unknown type %d(%x) at %d(%x)"
                 raise Exception(err_msg % (bson_type, bson_type))
