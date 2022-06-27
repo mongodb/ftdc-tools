@@ -1,8 +1,12 @@
 [tool.poetry]
 name = "ftdc-tools"
 version = "0.1.0"
-description = ""
-authors = ["Mridul Augustine <mridul.augustine@mongodb.com>"]
+description = "Pure python package that provides tools required to decode and process FTDC data."
+authors = ["Mridul Augustine <mridul.augustine@mongodb.com>",
+           "Alexander Costas <alexander.costas@mongodb.com>"]
+license="Apache-2.0"
+repository="https://github.com/mongodb/ftdc-tools"
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
