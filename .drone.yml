@@ -51,4 +51,4 @@ steps:
       event:
       - push
       - pull_request
-    type: kubernetes
+  type: kubernetes
