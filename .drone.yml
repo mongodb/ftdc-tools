@@ -35,7 +35,7 @@ steps:
     image: python:3.9-slim-buster
     environment:
       PYPI_USERNAME:
-        pypi_username: pypi_username
+        from_secret: pypi_username
       PYPI_PASSWORD:
         from_secret: pypi_password
     commands:
@@ -44,7 +44,6 @@ steps:
       - pip3 install --upgrade pip
       - pip3 install poetry
       - poetry install
-      - echo "-----"
       - echo $PYPI_USERNAME
       - poetry publish --build --username $PYPI_USERNAME --password $PYPI_PASSWORD --dry-run
     when:
