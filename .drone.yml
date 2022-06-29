@@ -44,12 +44,10 @@ steps:
       - pip3 install --upgrade pip
       - pip3 install poetry
       - poetry install
-      - echo $PYPI_USERNAME
-      - poetry publish --build --username $PYPI_USERNAME --password $PYPI_PASSWORD --dry-run
+      - poetry publish --build --username $PYPI_USERNAME --password $PYPI_PASSWORD
     when:
       branch:
       - main
       event:
       - push
-      - pull_request
 type: kubernetes
