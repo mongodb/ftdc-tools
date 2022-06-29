@@ -1,0 +1,25 @@
+---
+kind: pipeline
+name: setup-and-test
+platform:
+  os: linux
+steps:
+- commands:
+  - apt-get update
+  - apt-get -y install curl
+  - pip3 install --upgrade pip
+  - pip3 install poetry
+  - poetry install
+  - poetry run black ftdc_tools tests --check
+  - poetry run isort ftdc_tools tests --check-only
+  - poetry run flake8
+  - poetry run pytest
+  image: python:3.9-slim-buster
+  name: run-tests
+  when:
+    branch:
+    - main
+    event:
+    - push
+    - pull_request
+---

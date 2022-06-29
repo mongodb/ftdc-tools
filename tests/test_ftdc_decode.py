@@ -1,7 +1,6 @@
 from typing import Dict, List, Tuple
 
 import pytest
-
 from aiofile import async_open
 
 from ftdc_tools.ftdc_decoder import FTDC
