@@ -37,14 +37,14 @@ steps:
   - pip3 install --upgrade pip
   - pip3 install poetry
   - poetry install
-  - poetry publish --build --username $PYPI_USERNAME --pasword $PYPI_PASSWORD
+  - poetry publish --build --username $PYPI_USERNAME --password $PYPI_PASSWORD --dry-run
   image: python:3.9-slim-buster
-  name: run-tests
+  secrets: [ pypi_username, pypi_password ]
+  name: pypi-publish
   when:
     branch:
     - main
     event:
     - push
     - pull_request
-secrets: [ pypi_username, pypi_password ]
 type: kubernetes
