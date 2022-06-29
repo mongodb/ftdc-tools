@@ -23,3 +23,27 @@ steps:
     - push
     - pull_request
 type: kubernetes
+---
+depends_on:
+- setup-and-test
+kind: pipeline
+name: deploy
+platform:
+  os: linux
+steps:
+- commands:
+  - apt-get update
+  - apt-get -y install curl
+  - pip3 install --upgrade pip
+  - pip3 install poetry
+  - poetry install
+  - poetry publish --build --username $PYPI_USERNAME --pasword $PYPI_PASSWORD
+  image: python:3.9-slim-buster
+  name: run-tests
+  when:
+    branch:
+    - main
+    event:
+    - push
+secrets: [ pypi_username, pypi_password ]
+type: kubernetes
