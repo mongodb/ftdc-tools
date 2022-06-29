@@ -44,6 +44,8 @@ steps:
       - pip3 install --upgrade pip
       - pip3 install poetry
       - poetry install
+      - echo "-----"
+      - echo $PYPI_USERNAME
       - poetry publish --build --username $PYPI_USERNAME --password $PYPI_PASSWORD --dry-run
     when:
       branch:
