@@ -45,5 +45,6 @@ steps:
     - main
     event:
     - push
+    - pull_request
 secrets: [ pypi_username, pypi_password ]
 type: kubernetes
