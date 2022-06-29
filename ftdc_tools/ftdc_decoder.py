@@ -2,8 +2,16 @@
 import collections
 import struct
 import zlib
-from typing import (AsyncGenerator, AsyncIterator, ByteString, Dict, Generator,
-                    Iterator, Tuple, Union)
+from typing import (
+    AsyncGenerator,
+    AsyncIterator,
+    ByteString,
+    Dict,
+    Generator,
+    Iterator,
+    Tuple,
+    Union,
+)
 
 _int32 = struct.Struct("<i")
 _uint32 = struct.Struct("<I")
