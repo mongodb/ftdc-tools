@@ -2,7 +2,6 @@
 import collections
 import struct
 import zlib
-
 from typing import (
     AsyncGenerator,
     AsyncIterator,

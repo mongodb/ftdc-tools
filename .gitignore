@@ -29,6 +29,7 @@ pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
+junit-test-output.xml
 *.egg
 MANIFEST
 

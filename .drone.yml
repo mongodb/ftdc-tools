@@ -1,0 +1,54 @@
+---
+kind: pipeline
+name: test
+platform:
+  os: linux
+steps:
+- commands:
+  - apt-get update
+  - apt-get -y install curl
+  - pip3 install --upgrade pip
+  - pip3 install poetry
+  - poetry install
+  - poetry run black ftdc_tools tests --check
+  - poetry run isort ftdc_tools tests --check-only
+  - poetry run mypy ftdc_tools tests
+  - poetry run flake8
+  - poetry run pytest
+  image: python:3.9-slim-buster
+  name: run-tests
+  when:
+    branch:
+    - main
+    event:
+    - push
+    - pull_request
+type: kubernetes
+---
+depends_on:
+- test
+kind: pipeline
+name: deploy
+platform:
+  os: linux
+steps:
+  - name: pypi-publish
+    image: python:3.9-slim-buster
+    environment:
+      PYPI_USERNAME:
+        from_secret: pypi_username
+      PYPI_PASSWORD:
+        from_secret: pypi_password
+    commands:
+      - apt-get update
+      - apt-get -y install curl
+      - pip3 install --upgrade pip
+      - pip3 install poetry
+      - poetry install
+      - poetry publish --build --username $PYPI_USERNAME --password $PYPI_PASSWORD
+    when:
+      branch:
+      - main
+      event:
+      - push
+type: kubernetes
