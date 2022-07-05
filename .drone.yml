@@ -1,6 +1,6 @@
 ---
 kind: pipeline
-name: setup-and-test
+name: test
 platform:
   os: linux
 steps:
@@ -12,6 +12,7 @@ steps:
   - poetry install
   - poetry run black ftdc_tools tests --check
   - poetry run isort ftdc_tools tests --check-only
+  - poetry run mypy ftdc_tools tests
   - poetry run flake8
   - poetry run pytest
   image: python:3.9-slim-buster
@@ -25,7 +26,7 @@ steps:
 type: kubernetes
 ---
 depends_on:
-- setup-and-test
+- test
 kind: pipeline
 name: deploy
 platform:
