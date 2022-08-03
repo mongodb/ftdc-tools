@@ -20,7 +20,7 @@ steps:
     branch:
       - main
     event:
-      - pull_request
+#      - pull_request
       - push
 - name: publish
   image: python
@@ -33,7 +33,7 @@ steps:
   commands:
   - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
   - . $HOME/.poetry/env
-  - poetry config pypi-token.pypi $PYPI_TOKEN
+  - poetry config pypi-token.pypi abcd
   - poetry publish --build
   when:
     branch:
