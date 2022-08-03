@@ -15,12 +15,13 @@ steps:
   - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
   - poetry install
   - source $HOME/.poetry/env
-  - poetry run pytest
+  - poetry run pytest src tests
   when:
     branch:
       - main
     event:
       - pull_request
+      - push
 - name: publish
   image: python
   pull: if-not-exists

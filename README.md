@@ -89,8 +89,12 @@ $ poetry install
 
 Testing/linting:
 ```
-$ poetry run black ftdc_tools tests
-$ poetry run isort ftdc_tools tests
 $ poetry run pytest
-$ poetry run flake8
+```
+
+### Formatting/Lint Fixing
+```
+poetry run black src tests
+poetry run isort src tests
+poetry run autoflake --in-place --remove-all-unused-imports -r src tests
 ```

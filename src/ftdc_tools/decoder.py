@@ -9,10 +9,10 @@ from typing import (
     ByteString,
     Dict,
     Generator,
+    Iterable,
     Iterator,
     Tuple,
     Union,
-    Iterable,
 )
 
 _int32 = struct.Struct("<i")
@@ -147,13 +147,9 @@ class FTDC(Iterable):
         Tuple[Union[Dict[Tuple, int], None], Union[None, int], int], Chunk, None
     ]:
         """
-        Will take a BSON chuck or bytes string as input and decode it.
+        Get ftdc data from a chunk.
 
-        Args:
-            chunk: This is byststring or chuck that needs to be decoded
-
-        Returns:
-            A generator key values pairs of the decoded data.
+        :param chunk: The chunk to decode.
         """
         frame = bytearray()
         frame.extend(chunk)
