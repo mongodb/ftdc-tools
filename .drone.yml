@@ -20,20 +20,18 @@ steps:
     branch:
       - main
     event:
-#      - pull_request
+      - pull_request
       - push
 - name: publish
   image: python
   pull: if-not-exists
-  settings:
-    namespace: devprod-tips
   environment:
     PYPI_TOKEN:
-      from_secret: ftdc-tools-secrets
+      from_secret: PYPI_TOKEN
   commands:
   - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
   - . $HOME/.poetry/env
-  - poetry config pypi-token.pypi abcd
+  - poetry config pypi-token.pypi $PYPI_TOKEN
   - poetry publish --build
   when:
     branch:
