@@ -12,6 +12,7 @@ from typing import (
     Iterator,
     Tuple,
     Union,
+    Iterable,
 )
 
 _int32 = struct.Struct("<i")
@@ -29,7 +30,7 @@ class Chunk(collections.OrderedDict):
     nsamples: int
 
 
-class FTDC(collections.abc.Iterable):
+class FTDC(Iterable):
     """
     Defines a FTDC object that can decode binary FTDC data.
 

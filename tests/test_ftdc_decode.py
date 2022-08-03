@@ -4,7 +4,7 @@ import pytest
 
 from aiofile import async_open
 
-from ftdc_tools.ftdc_decoder import FTDC
+from src.ftdc_tools.decoder import FTDC
 
 
 def validateFTDCRecord(record: Dict[Tuple, int]) -> None:

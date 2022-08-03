@@ -1,0 +1,22 @@
+---
+kind: pipeline
+name: ftdc-tools
+type: kubernetes
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: test
+  image: python
+  pull: if-not-exists
+  commands:
+  - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+  - poetry install
+  - poetry run pytest
+  when:
+    branch:
+      - main
+    event:
+      - pull_request
