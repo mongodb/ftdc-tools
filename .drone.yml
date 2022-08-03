@@ -20,3 +20,14 @@ steps:
       - main
     event:
       - pull_request
+- name: publish
+  image: python
+  pull: if-not-exists
+  commands:
+  - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+  - poetry publish --build
+  when:
+    branch:
+      - main
+    event:
+      - push
