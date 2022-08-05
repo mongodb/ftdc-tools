@@ -14,7 +14,7 @@ pip install ftdc-tools
 
 ### Decoding FTDC file from URL - Streaming approach
 ```
-from ftdc_tools.ftdc_decoder import FTDC
+from ftdc_tools.decoder import FTDC
 import requests
 url = "https://genny-metrics.s3.amazonaws.com/performance_linux_wt_repl_genny_scale_InsertRemove_patch_b2098c676bdc64e3194734fa632b133c47496646_61f955933066150fca890e4a_22_02_01_15_58_36_0/canary_InsertRemove.ActorFinished"
 
@@ -26,7 +26,7 @@ for ftdc_row in FTDC(response.raw):
 
 ### Decoding FTDC file from URL - Non-streaming approach
 ```
-from ftdc_tools.ftdc_decoder import FTDC
+from ftdc_tools.decoder import FTDC
 import requests
 url = "https://genny-metrics.s3.amazonaws.com/performance_linux_wt_repl_genny_scale_InsertRemove_patch_b2098c676bdc64e3194734fa632b133c47496646_61f955933066150fca890e4a_22_02_01_15_58_36_0/canary_InsertRemove.ActorFinished"
 
@@ -39,7 +39,7 @@ for ftdc_row in FTDC(response.content):
 ```
 import asyncio
 import aiohttp
-from ftdc_tools.ftdc_decoder import FTDC
+from ftdc_tools.decoder import FTDC
 url = "https://genny-metrics.s3.amazonaws.com/performance_linux_wt_repl_genny_scale_InsertRemove_patch_b2098c676bdc64e3194734fa632b133c47496646_61f955933066150fca890e4a_22_02_01_15_58_36_0/canary_InsertRemove.ActorFinished"
 
 async def decode_ftdc():
@@ -59,7 +59,7 @@ When combined with an async streaming approach, users should achieve the best po
 ```
 import asyncio
 import aiohttp
-from ftdc_tools.ftdc_decoder import FTDC
+from ftdc_tools.decoder import FTDC
 url = "https://genny-metrics.s3.amazonaws.com/performance_linux_wt_repl_genny_scale_InsertRemove_patch_b2098c676bdc64e3194734fa632b133c47496646_61f955933066150fca890e4a_22_02_01_15_58_36_0/canary_InsertRemove.ActorFinished"
 
 async def decode_ftdc():
@@ -89,8 +89,12 @@ $ poetry install
 
 Testing/linting:
 ```
-$ poetry run black ftdc_tools tests
-$ poetry run isort ftdc_tools tests
 $ poetry run pytest
-$ poetry run flake8
+```
+
+### Formatting/Lint Fixing
+```
+poetry run black src tests
+poetry run isort src tests
+poetry run autoflake --in-place --remove-all-unused-imports -r src tests
 ```
