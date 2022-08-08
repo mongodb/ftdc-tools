@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ftdc-tools"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = [
     "Alexander Costas <alexander.costas@mongodb.com>",
