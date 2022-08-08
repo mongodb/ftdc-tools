@@ -9,7 +9,7 @@ platform:
 
 steps:
 - name: test
-  image: python-3.9-slim-buster
+  image: python:3.9-slim-buster
   pull: if-not-exists
   commands:
   - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
@@ -23,7 +23,7 @@ steps:
       - pull_request
       - push
 - name: publish
-  image: python-3.9-slim-buster
+  image: python:3.9-slim-buster
   pull: if-not-exists
   environment:
     PYPI_TOKEN:
