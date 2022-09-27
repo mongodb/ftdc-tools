@@ -7,6 +7,10 @@ import pytest
 def test_data() -> List[Dict[str, object]]:
     return [
         {
+            "ftdc_file": "./tests/test_bson_files/test_data_ftdc_file_empty_doc",
+            "doc_count": 0,
+        },
+        {
             "ftdc_file": "./tests/test_bson_files/test_data_ftdc_file_0_doc",
             "doc_count": 1,
         },

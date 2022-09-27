@@ -60,7 +60,10 @@ class FTDC(Iterable):
             raise ValueError(
                 "Async interation not supported. FTDC data is not of type AsyncIterator"
             )
-        chunk = await self.raw.__anext__()
+        try:
+            chunk = await self.raw.__anext__()
+        except StopAsyncIteration:
+            return
         next_chunk = self.raw.__anext__()
         chunks_created, chunks_awaited = 2, 1
         gen = self.getftdc(chunk)
@@ -110,7 +113,10 @@ class FTDC(Iterable):
                 if x is not None:
                     yield x
         elif isinstance(self.raw, Iterator):
-            chunk = next(self.raw)
+            try:
+                chunk = next(self.raw)
+            except StopIteration:
+                return
             gen = self.getftdc(chunk)
             more = True
             for x, doc_len, buf in gen:
