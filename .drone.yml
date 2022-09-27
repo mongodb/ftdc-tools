@@ -12,9 +12,9 @@ steps:
   image: python
   pull: if-not-exists
   commands:
-  - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-  - . $HOME/.poetry/env
-  - poetry install
+  - pip3 install --upgrade pip
+  - pip3 install poetry==1.2.0
+  - poetry --version
   - poetry run pytest src tests
   when:
     branch:
