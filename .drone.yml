@@ -15,6 +15,7 @@ steps:
   - pip3 install --upgrade pip
   - pip3 install poetry==1.2.0
   - poetry --version
+  - poetry install
   - poetry run pytest src tests
   when:
     branch:
