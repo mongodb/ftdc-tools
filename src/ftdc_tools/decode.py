@@ -1,10 +1,11 @@
 """Package to decode FTDC data."""
+import collections
 import bson
 import io
 import zlib
 import datetime
-import requests
 import time
+from bson.codec_options import CodecOptions
 
 from typing import Any, Callable, List, Tuple
 from collections.abc import MutableMapping
@@ -20,16 +21,19 @@ class MetricChunk:
     delta_constructor: Callable[Any, Any]
 
 
+ftdc_bson_options = CodecOptions(document_class=collections.OrderedDict)
+
+
 def decode_iter(ftdc):
     """Iterate over all docs in a FTDC stream."""
-    for chunk in bson.decode_iter(ftdc):
+    for chunk in bson.decode_iter(ftdc, codec_options=ftdc_bson_options):
         for doc in _iter_chunk(chunk):
             yield doc
 
 
 def decode_file_iter(ftdc):
     """Iterate over all docs in a FTDC stream."""
-    for chunk in bson.decode_file_iter(ftdc):
+    for chunk in bson.decode_file_iter(ftdc, codec_options=ftdc_bson_options):
         for doc in _iter_chunk(chunk):
             yield doc
     
@@ -45,7 +49,7 @@ def _iter_chunk(chunk):
     # contains a bson document which begins the sample.
     # We retrieve just that doc. The rest cannot be parsed as bson.
     # TODO: Ordered dict?
-    ref_doc = bson.decode_file_iter(bson_data).__next__()
+    ref_doc = bson.decode_file_iter(bson_data, codec_options=ftdc_bson_options).__next__()
     metrics = _get_metrics_from_ref_doc(ref_doc)
 
     # The next four bytes tell us how many metrics (fields) to expect per event in this chunk.
