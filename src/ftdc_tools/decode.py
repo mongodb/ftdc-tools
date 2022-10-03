@@ -121,25 +121,8 @@ def _iter_chunk(chunk: FTDCDoc) -> Iterator[FTDCDoc]:
         yield doc
 
 
-def _decode_varint(data_stream: Union[BinaryIO, IO]) -> int:
-    """
-    Magically decode a varint.
-
-    More notes about varints: https://developers.google.com/protocol-buffers/docs/encoding
-    """
-    res = 0
-    shift = 0
-    while True:
-        b = int.from_bytes(data_stream.read(1), byteorder="little")
-        res |= (b & 0x7F) << shift
-        if not (b & 0x80):
-            if res > 0x7FFFFFFFFFFFFFFF:  # negative 64-bit value
-                res = int(res - 0x10000000000000000)
-            return res
-        shift += 7
-
-
 def _get_metrics_from_ref_doc(ref_doc: FTDCDoc) -> List[MetricChunk]:
+    """Return a list of MetricChunks that are deciphered from the reference doc."""
     metrics = []
     for key_path, value in _get_paths_and_vals(ref_doc):
         bson_translate, delta_constructor = _get_constructors_for_val(value)
@@ -160,6 +143,7 @@ KeyPath = Tuple[str, ...]
 def _get_paths_and_vals(
     d: MutableMapping[Any, BSONValue], key_path: List[str] = []
 ) -> List[Tuple[KeyPath, BSONSingleValue]]:
+    """Return the leaf-level values in this dict and the paths to them."""
     output = []
     for key, value in d.items():
         key_path.append(key)
@@ -199,6 +183,24 @@ def _get_constructors_for_val(
         return identity, bool
     else:
         raise ValueError(f"Unknown type found in FTDC chunk reference doc: {type(val)}")
+
+
+def _decode_varint(data_stream: Union[BinaryIO, IO]) -> int:
+    """
+    Magically decode a varint.
+
+    More notes about varints: https://developers.google.com/protocol-buffers/docs/encoding
+    """
+    res = 0
+    shift = 0
+    while True:
+        b = int.from_bytes(data_stream.read(1), byteorder="little")
+        res |= (b & 0x7F) << shift
+        if not (b & 0x80):
+            if res > 0x7FFFFFFFFFFFFFFF:  # negative 64-bit value
+                res = int(res - 0x10000000000000000)
+            return res
+        shift += 7
 
 
 # Note for somewhere: BSON only has millisecond-granularity for timestamps. So even though
