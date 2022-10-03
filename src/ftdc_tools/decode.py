@@ -16,6 +16,22 @@ from bson.codec_options import CodecOptions
 FTDCValue = Union[datetime.datetime, int, bool, OrderedDict[str, Any]]
 
 
+# Type for a FTDC doc returned from an iter function.
+# In principle a FTDCDoc should only contain FTDCValues, but
+# we can't embed this definition in that one. (mypy doesn't
+# support cyclic definitions.)
+FTDCDoc = OrderedDict[str, Any]
+
+
+# Types for an undecoded BSON doc.
+BSONSingleValue = Union[datetime.datetime, bson.int64.Int64, bool]
+BSONValue = Union[BSONSingleValue, MutableMapping[str, Any]]
+
+
+# Path to a key in a FTDC document.
+KeyPath = Tuple[str, ...]
+
+
 @dataclass
 class MetricChunk:
     """Dataclass representing a single chunk's metrics (one column)."""
@@ -25,30 +41,20 @@ class MetricChunk:
     delta_constructor: Callable[..., Any]
 
 
-# Type for a FTDC doc returned from an iter function.
-# In principle a FTDCDoc should only contain FTDCValues, but
-# we can't embed this definition in that one. (Mypy doesn't)
-# support cyclic definitions.
-FTDCDoc = OrderedDict[str, Any]
-
-
-# Types for an undecoded BSON doc.
-BSONSingleValue = Union[datetime.datetime, bson.int64.Int64, bool]
-BSONValue = Union[BSONSingleValue, MutableMapping[str, Any]]
-
-
+# We have mypy ignore CodecOptions and its uses throughout; it complains about
+# usage recommended in the pymongo bson docs.
 ftdc_bson_options = CodecOptions(document_class=OrderedDict)  # type: ignore
 
 
 def decode_iter(ftdc: bytes) -> Iterator[FTDCDoc]:
-    """Iterate over all docs in a set of FTDC bytes."""
+    """Iterate over all FTDC docs in a set of bytes."""
     for chunk in bson.decode_iter(ftdc, codec_options=ftdc_bson_options):  # type: ignore
         for doc in _iter_chunk(chunk):  # type: ignore
             yield doc
 
 
 def decode_file_iter(file_obj: Union[BinaryIO, IO]) -> Iterator[FTDCDoc]:
-    """Iterate over all docs in a FTDC stream."""
+    """Iterate over all FTDC docs in a stream."""
     for chunk in bson.decode_file_iter(file_obj, codec_options=ftdc_bson_options):  # type: ignore
         for doc in _iter_chunk(chunk):  # type: ignore
             yield doc
@@ -135,13 +141,12 @@ def _get_metrics_from_ref_doc(ref_doc: FTDCDoc) -> List[MetricChunk]:
     return metrics
 
 
-KeyPath = Tuple[str, ...]
 
 
 def _get_paths_and_vals(
     d: MutableMapping[Any, BSONValue], key_path: List[str] = []
 ) -> List[Tuple[KeyPath, BSONSingleValue]]:
-    """Return the leaf-level values in this dict and the paths to them."""
+    """Return the paths to all leaves and the leaf-level values themselves."""
     output = []
     for key, value in d.items():
         key_path.append(key)
