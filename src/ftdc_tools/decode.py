@@ -22,7 +22,6 @@ class MetricChunk:
 
     key_path: Tuple[str, ...]
     values: List[FTDCValue]
-    reference_val: FTDCValue
     delta_constructor: Callable[..., Any]
 
 
@@ -42,7 +41,7 @@ ftdc_bson_options = CodecOptions(document_class=OrderedDict)  # type: ignore
 
 
 def decode_iter(ftdc: bytes) -> Iterator[FTDCDoc]:
-    """Iterate over all docs in a FTDC stream."""
+    """Iterate over all docs in a set of FTDC bytes."""
     for chunk in bson.decode_iter(ftdc, codec_options=ftdc_bson_options):  # type: ignore
         for doc in _iter_chunk(chunk):  # type: ignore
             yield doc
@@ -86,7 +85,9 @@ def _iter_chunk(chunk: FTDCDoc) -> Iterator[FTDCDoc]:
     # The rest of the chunk is a bunch of varint-encoded deltas for each metric in order.
     zero_count = 0
     for metric in metrics:
-        previous_val = metric.reference_val
+        previous_val = metric.values[
+            0
+        ]  # The first value is pre-populated from the reference doc.
         for _ in range(delta_count):
             if zero_count != 0:
                 delta = 0
@@ -104,10 +105,7 @@ def _iter_chunk(chunk: FTDCDoc) -> Iterator[FTDCDoc]:
             "Metrics chunk contains extra deltas. Expected only {delta_count}"
         )
 
-    # TODO: Fix types?
-    yield ref_doc
-
-    for i in range(delta_count):
+    for i in range(len(metrics[0].values)):
         doc = FTDCDoc()
         for metric in metrics:
             cur = doc
@@ -128,8 +126,7 @@ def _get_metrics_from_ref_doc(ref_doc: FTDCDoc) -> List[MetricChunk]:
         metrics.append(
             MetricChunk(
                 key_path=key_path,
-                values=[],
-                reference_val=bson_translate(value),
+                values=[bson_translate(value)],
                 delta_constructor=delta_constructor,
             )
         )
