@@ -1,44 +1,62 @@
 """Package to decode FTDC data."""
-import collections
-import bson
+import datetime
 import io
 import zlib
-import datetime
-import time
-from bson.codec_options import CodecOptions
 
-from typing import Any, Callable, List, Tuple
+from collections import OrderedDict
 from collections.abc import MutableMapping
 from dataclasses import dataclass
+from typing import IO, Any, BinaryIO, Callable, Iterator, List, Tuple, Union
+
+import bson
+
+from bson.codec_options import CodecOptions
 
 
-# TODO: Generic?
 @dataclass
 class MetricChunk:
+    """Dataclass representing a single chunk's metrics (one column)."""
+
     key_path: Any
     values: List[Any]
     reference_val: Any
-    delta_constructor: Callable[Any, Any]
+    delta_constructor: Callable
 
 
-ftdc_bson_options = CodecOptions(document_class=collections.OrderedDict)
+# Values an FTDC value may take.
+FTDCValue = Union[datetime.datetime, int, bool, OrderedDict[str, Any]]
 
 
-def decode_iter(ftdc):
+# Type for a FTDC doc returned from an iter function.
+# In principle a FTDCDoc should only contain FTDCValues, but
+# we can't embed this definition in that one. (Mypy doesn't)
+# support cyclic definitions.
+FTDCDoc = OrderedDict[str, Any]
+
+
+# Types for an undecoded BSON doc.
+BSONSingleValue = Union[datetime.datetime, bson.int64.Int64, bool]
+BSONValue = Union[BSONSingleValue, MutableMapping[str, Any]]
+
+
+ftdc_bson_options = CodecOptions(document_class=OrderedDict)  # type: ignore
+
+
+def decode_iter(ftdc: bytes) -> Iterator[FTDCDoc]:
     """Iterate over all docs in a FTDC stream."""
-    for chunk in bson.decode_iter(ftdc, codec_options=ftdc_bson_options):
-        for doc in _iter_chunk(chunk):
+    for chunk in bson.decode_iter(ftdc, codec_options=ftdc_bson_options):  # type: ignore
+        for doc in _iter_chunk(chunk):  # type: ignore
             yield doc
 
 
-def decode_file_iter(ftdc):
+def decode_file_iter(file_obj: Union[BinaryIO, IO]) -> Iterator[FTDCDoc]:
     """Iterate over all docs in a FTDC stream."""
-    for chunk in bson.decode_file_iter(ftdc, codec_options=ftdc_bson_options):
-        for doc in _iter_chunk(chunk):
+    for chunk in bson.decode_file_iter(file_obj, codec_options=ftdc_bson_options):  # type: ignore
+        for doc in _iter_chunk(chunk):  # type: ignore
             yield doc
-    
-                    
-def _iter_chunk(chunk):
+
+
+def _iter_chunk(chunk: FTDCDoc) -> Iterator[FTDCDoc]:
     """Iterate over a single FTDC chunk."""
     raw_data = chunk["data"]
 
@@ -48,16 +66,19 @@ def _iter_chunk(chunk):
     # The metrics chunk, which is *not* bson, first
     # contains a bson document which begins the sample.
     # We retrieve just that doc. The rest cannot be parsed as bson.
-    # TODO: Ordered dict?
-    ref_doc = bson.decode_file_iter(bson_data, codec_options=ftdc_bson_options).__next__()
+    ref_doc: FTDCDoc = bson.decode_file_iter(
+        bson_data, codec_options=ftdc_bson_options  # type: ignore
+    ).__next__()
     metrics = _get_metrics_from_ref_doc(ref_doc)
 
     # The next four bytes tell us how many metrics (fields) to expect per event in this chunk.
     # If that doesn't match the reference doc, error out.
     metric_count = int.from_bytes(bson_data.read(4), byteorder="little", signed=False)
     if metric_count != len(metrics):
-        raise ValueError("Metrics mismatch, file likely corrupted."
-                            f" Expected {metric_count} metrics but found {len(ref_doc)}")
+        raise ValueError(
+            "Metrics mismatch, file likely corrupted."
+            f" Expected {metric_count} metrics but found {len(ref_doc)}"
+        )
 
     # The next four bytes tell how many delta-encoded events to expect for each series
     # in this chunk.
@@ -80,24 +101,27 @@ def _iter_chunk(chunk):
             previous_val = cur_val
 
     if bson_data.read():
-        raise ValueError("Metrics chunk contains extra deltas. Expected only {delta_count}")
+        raise ValueError(
+            "Metrics chunk contains extra deltas. Expected only {delta_count}"
+        )
 
+    # TODO: Fix types?
     yield ref_doc
 
     for i in range(delta_count):
-        doc = {}
+        doc = FTDCDoc()
         for metric in metrics:
             cur = doc
-            for j in range(len(metric.key_path)-1):
+            for j in range(len(metric.key_path) - 1):
                 key = metric.key_path[j]
                 if key not in cur:
-                    cur[key] = {}
+                    cur[key] = FTDCDoc()
                 cur = cur[key]
             cur[metric.key_path[-1]] = metric.values[i]
         yield doc
 
 
-def _decode_varint(data_stream):
+def _decode_varint(data_stream: Union[BinaryIO, IO]) -> int:
     """
     Magically decode a varint.
 
@@ -115,17 +139,27 @@ def _decode_varint(data_stream):
         shift += 7
 
 
-def _get_metrics_from_ref_doc(ref_doc):
+def _get_metrics_from_ref_doc(ref_doc: FTDCDoc) -> List[MetricChunk]:
     metrics = []
-    key_path = []
     for key_path, value in _get_paths_and_vals(ref_doc):
         bson_translate, delta_constructor = _get_constructors_for_val(value)
-        metrics.append(MetricChunk(key_path=key_path, values=[],
-                              reference_val=bson_translate(value),
-                              delta_constructor=delta_constructor))
+        metrics.append(
+            MetricChunk(
+                key_path=key_path,
+                values=[],
+                reference_val=bson_translate(value),
+                delta_constructor=delta_constructor,
+            )
+        )
     return metrics
 
-def _get_paths_and_vals(d, key_path=[]):
+
+KeyPath = Tuple[str, ...]
+
+
+def _get_paths_and_vals(
+    d: MutableMapping[Any, BSONValue], key_path: List[str] = []
+) -> List[Tuple[KeyPath, BSONSingleValue]]:
     output = []
     for key, value in d.items():
         key_path.append(key)
@@ -137,19 +171,21 @@ def _get_paths_and_vals(d, key_path=[]):
     return output
 
 
-def _get_constructors_for_val(val):
+def _get_constructors_for_val(
+    val: BSONValue,
+) -> Tuple[Callable[..., Any], Callable[..., Any]]:
     """
-    Return two functions:
+    Return two functions.
 
     One for converting the initial bson value to a pythonic value.
 
     Another for converting integer delta values to that type's delta.
     """
 
-    def identity(x):
+    def identity(x: Any) -> Any:
         return x
 
-    def int_to_timedelta(x):
+    def int_to_timedelta(x: int) -> datetime.timedelta:
         return datetime.timedelta(milliseconds=x)
 
     # TODO: There are more possible bson, and therefore likely possible FTDC types.
@@ -163,18 +199,6 @@ def _get_constructors_for_val(val):
         return identity, bool
     else:
         raise ValueError(f"Unknown type found in FTDC chunk reference doc: {type(val)}")
-    
-
-def _get_metrics(d, parent_keys):
-    items = []
-    for key, value in to_flatten.items():
-        new_key = f"{parent_key}{sep}{key}" if parent_key else key
-        if isinstance(value, MutableMapping):
-            items.extend(_flatten_dict(value, new_key, sep=sep).items())
-        else:
-            items.append((new_key, value))
-    return dict(items)
-
 
 
 # Note for somewhere: BSON only has millisecond-granularity for timestamps. So even though

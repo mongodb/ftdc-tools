@@ -1,15 +1,15 @@
-from typing import Dict, List, Tuple
-
-import pytest
-
-from aiofile import async_open
+from typing import Dict, List
 
 from src.ftdc_tools.decode import decode_file_iter
+
+# import pytest
+
+# from aiofile import async_open
 
 
 def validate_ftdc_record(record) -> None:
     """Do a very basic validation of a FTDC record."""
-    #required_keys = [
+    # required_keys = [
     #    ("ts",),
     #    ("id",),
     #    ("counters", "n"),
@@ -21,9 +21,9 @@ def validate_ftdc_record(record) -> None:
     #    ("gauges", "state"),
     #    ("gauges", "workers"),
     #    ("gauges", "failed"),
-    #]
-    #assert len(record) == len(required_keys)
-    #for key in required_keys:
+    # ]
+    # assert len(record) == len(required_keys)
+    # for key in required_keys:
     #    assert key in record.keys()
     #    assert type(record[key]) == int
     top_level_keys = ["ts", "id", "counters", "timers", "gauges"]
@@ -41,7 +41,7 @@ class TestFTDCDecode:
                     record_count += 1
             assert record_count == test["doc_count"]
 
-    #def test_ftdc_rollup_streaming(self, test_data: List[Dict]) -> None:
+    # def test_ftdc_rollup_streaming(self, test_data: List[Dict]) -> None:
     #    for test in test_data:
     #        file = open(test["ftdc_file"], "rb")
     #        record_count = 0
@@ -51,8 +51,8 @@ class TestFTDCDecode:
 
     #        assert record_count == test["doc_count"]
 
-    #@pytest.mark.asyncio
-    #async def test_async_ftdc_rollup_streaming(self, test_data: List[Dict]) -> None:
+    # @pytest.mark.asyncio
+    # async def test_async_ftdc_rollup_streaming(self, test_data: List[Dict]) -> None:
     #    for test in test_data:
     #        async with async_open(test["ftdc_file"], "rb") as file:
     #            record_count = 0
@@ -62,10 +62,10 @@ class TestFTDCDecode:
 
     #        assert record_count == test["doc_count"]
 
-    #@pytest.mark.asyncio
-    #async def test_async_ftdc_rollup_streaming_with_memory(
+    # @pytest.mark.asyncio
+    # async def test_async_ftdc_rollup_streaming_with_memory(
     #    self, test_data: List[Dict]
-    #) -> None:
+    # ) -> None:
     #    for test in test_data:
     #        async with async_open(test["ftdc_file"], "rb") as file:
     #            record_count = 0
