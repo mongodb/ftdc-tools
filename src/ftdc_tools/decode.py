@@ -12,19 +12,18 @@ import bson
 
 from bson.codec_options import CodecOptions
 
+# Values an FTDC value may take.
+FTDCValue = Union[datetime.datetime, int, bool, OrderedDict[str, Any]]
+
 
 @dataclass
 class MetricChunk:
     """Dataclass representing a single chunk's metrics (one column)."""
 
-    key_path: Any
-    values: List[Any]
-    reference_val: Any
-    delta_constructor: Callable
-
-
-# Values an FTDC value may take.
-FTDCValue = Union[datetime.datetime, int, bool, OrderedDict[str, Any]]
+    key_path: Tuple[str, ...]
+    values: List[FTDCValue]
+    reference_val: FTDCValue
+    delta_constructor: Callable[..., Any]
 
 
 # Type for a FTDC doc returned from an iter function.
@@ -201,7 +200,3 @@ def _decode_varint(data_stream: Union[BinaryIO, IO]) -> int:
                 res = int(res - 0x10000000000000000)
             return res
         shift += 7
-
-
-# Note for somewhere: BSON only has millisecond-granularity for timestamps. So even though
-# genny reports TS using milliseconds, that seems to be lost when dumped to disk.
