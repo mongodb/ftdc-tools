@@ -105,9 +105,11 @@ def _iter_chunk(chunk: FTDCDoc) -> Iterator[FTDCDoc]:
             "Metrics chunk contains extra deltas. Expected only {delta_count}"
         )
 
+    # This is the main iteration / generator.
     for i in range(len(metrics[0].values)):
         doc = FTDCDoc()
         for metric in metrics:
+            # Construct a doc for this index across all metrics slices.
             cur = doc
             for j in range(len(metric.key_path) - 1):
                 key = metric.key_path[j]
@@ -183,7 +185,7 @@ def _get_constructors_for_val(
 
 def _decode_varint(data_stream: Union[BinaryIO, IO]) -> int:
     """
-    Magically decode a varint.
+    Use magic to decode a varint.
 
     More notes about varints: https://developers.google.com/protocol-buffers/docs/encoding
     """
