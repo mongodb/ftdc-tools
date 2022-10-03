@@ -141,8 +141,6 @@ def _get_metrics_from_ref_doc(ref_doc: FTDCDoc) -> List[MetricChunk]:
     return metrics
 
 
-
-
 def _get_paths_and_vals(
     d: MutableMapping[Any, BSONValue], key_path: List[str] = []
 ) -> List[Tuple[KeyPath, BSONSingleValue]]:
