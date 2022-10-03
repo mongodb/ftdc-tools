@@ -91,9 +91,8 @@ def _iter_chunk(chunk: FTDCDoc) -> Iterator[FTDCDoc]:
     # The rest of the chunk is a bunch of varint-encoded deltas for each metric in order.
     zero_count = 0
     for metric in metrics:
-        previous_val = metric.values[
-            0
-        ]  # The first value is pre-populated from the reference doc.
+        # The first value is pre-populated from the reference doc.
+        previous_val = metric.values[0]
         for _ in range(delta_count):
             if zero_count != 0:
                 delta = 0
