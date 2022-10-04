@@ -130,7 +130,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
     """
     return [
         {
-            "ts": 1643735930767,
+            "ts": datetime.fromtimestamp(1643735930.767),
             "id": 0,
             "counters": {
                 "n": 1,
@@ -142,7 +142,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930768,
+            "ts": datetime.fromtimestamp(1643735930.768),
             "id": 1,
             "counters": {
                 "n": 2,
@@ -150,11 +150,11 @@ def mock_non_linear_ftdc_stream_output() -> list:
                 "size": 10,
                 "errors": 4,
             },
-            "timers": {"dur": 7221111, "total": 180009845702},
+            "timers": {"dur": 7221111, "total": 180009845.702},
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930769,
+            "ts": datetime.fromtimestamp(1643735930.769),
             "id": 2,
             "counters": {
                 "n": 3,
@@ -166,7 +166,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930770,
+            "ts": datetime.fromtimestamp(1643735930.770),
             "id": 3,
             "counters": {
                 "n": 4,
@@ -178,7 +178,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930771,
+            "ts": datetime.fromtimestamp(1643735930.771),
             "id": 4,
             "counters": {
                 "n": 5,
@@ -190,7 +190,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930772,
+            "ts": datetime.fromtimestamp(1643735930.772),
             "id": 5,
             "counters": {
                 "n": 6,
@@ -202,7 +202,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930773,
+            "ts": datetime.fromtimestamp(1643735930.773),
             "id": 6,
             "counters": {
                 "n": 7,
@@ -214,7 +214,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930774,
+            "ts": datetime.fromtimestamp(1643735930.774),
             "id": 7,
             "counters": {
                 "n": 8,
@@ -226,7 +226,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930775,
+            "ts": datetime.fromtimestamp(1643735930.775),
             "id": 8,
             "counters": {
                 "n": 9,
@@ -238,7 +238,7 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
         {
-            "ts": 1643735930776,
+            "ts": datetime.fromtimestamp(1643735930.776),
             "id": 9,
             "counters": {
                 "n": 10,
