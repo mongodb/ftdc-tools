@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from scipy.stats.mstats import mquantiles
 
 from ftdc_tools.decode import FTDCDoc
@@ -35,7 +35,7 @@ class Counters(BaseModel):
 class Timers(BaseModel):
     """Timers that may go up."""
 
-    duration: int
+    duration: int = Field(alias="dur")
     total: int
 
 
@@ -86,6 +86,7 @@ class ClientPerformanceStatistics:
 
     def add_doc(self, doc: FTDCDoc) -> None:
         """Add a doc to the rollup."""
+        record = Record.parse_obj(doc)
         self._finalized = False
         if "dur" in doc["timers"].keys():
             duration = float(doc["timers"]["dur"])
