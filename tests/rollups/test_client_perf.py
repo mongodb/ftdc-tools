@@ -206,7 +206,7 @@ def test_single_ftdc_statistic() -> None:
                     "errors": 0,
                 },
                 "timers": {"dur": 366, "total": 180009841025},
-                "gauges": {"state": 0, "workers": 1, "failed": False},
+                "gauges": {"state": 0, "workers": 1, "failed": 0},
             }
         )
     ]
@@ -315,7 +315,7 @@ def test_invalid_ftdc_record() -> None:
                     "errors": 0,
                 },
                 "timers": {"total": 180009841025},
-                "gauges": {"state": 0, "workers": 1, "failed": False},
+                "gauges": {"state": 0, "workers": 1, "failed": 0},
             }
         )
     ]

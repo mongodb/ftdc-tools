@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from pydantic import BaseModel
 from scipy.stats.mstats import mquantiles
 
 from ftdc_tools.decode import FTDCDoc
@@ -21,40 +20,6 @@ class Statistic:
     value: float
     version: int
     user_submitted: bool
-
-
-class Counters(BaseModel):
-    """Timers that may go up."""
-
-    n: int
-    ops: int
-    size: int
-    errors: int
-
-
-class Timers(BaseModel):
-    """Timers that may go up."""
-
-    duration: int
-    total: int
-
-
-class Gauges(BaseModel):
-    """Gauges that may change value arbitrarily."""
-
-    state: int
-    workers: int
-    failed: bool
-
-
-class Record(BaseModel):
-    """Performance record of one client-side moment."""
-
-    ts: datetime
-    id: int
-    counters: Counters
-    timers: Timers
-    gauges: Gauges
 
 
 class ClientPerformanceStatistics:
