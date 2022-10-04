@@ -11,6 +11,7 @@ authors = [
 python = ">=3.9,<3.11"
 pymongo = "^4.2.0"
 scipy = "^1.9.1"
+pydantic = "^1.10.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"
