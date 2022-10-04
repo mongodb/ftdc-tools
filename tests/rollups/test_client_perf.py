@@ -8,8 +8,6 @@ import pytest
 from ftdc_tools.decode import FTDCDoc
 from ftdc_tools.rollups.client_perf import ClientPerformanceStatistics, Statistic
 
-from pydantic.error_wrappers import ValidationError
-
 req_get = MagicMock()
 req_get.raw = []
 
@@ -322,10 +320,11 @@ def test_invalid_ftdc_record() -> None:
         )
     ]
 
-    with pytest.raises(ValidationError):
+    with pytest.raises(KeyError) as exc_info:
         roll = ClientPerformanceStatistics()
         for doc in docs:
             roll.add_doc(doc)
+    assert str(exc_info.value) == "'duration'"
 
 
 def test_non_linear_ftdc_statistic(
