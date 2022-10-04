@@ -1,10 +1,12 @@
 """Statistics calculations for client-side performance data."""
 
-from datetime import timezone
 from dataclasses import dataclass
-from typing import AsyncIterator, ByteString, Dict, Iterator, List, Tuple, Union
+from datetime import datetime, timezone
+from typing import List, Optional
 
 from scipy.stats.mstats import mquantiles
+
+from ftdc_tools.decode import FTDCDoc
 
 TO_NANOSECONDS = 1e9
 NANO_TO_MILLISECONDS = 1e6
@@ -28,9 +30,7 @@ class ClientPerformanceStatistics:
     time series of client-observable events.
     """
 
-    def __init__(
-        self, ftdc_data: Union[AsyncIterator, Iterator, ByteString], memory: int = None
-    ) -> None:
+    def __init__(self) -> None:
         """Initialize the class."""
         self._operations_total = 0
         self._documents_total = 0
@@ -42,70 +42,44 @@ class ClientPerformanceStatistics:
         self._timers_total = 0
         self._gauges_workers_min = 0
         self._gauges_workers_max = 0
-        self.first_record: Dict[Tuple, int] = {}
-        self.last_record: Dict[Tuple, int] = {}
-        self._ftdc_data = ftdc_data
-        self._memory = memory
-        self._processed = False
+        self.first_doc: Optional[FTDCDoc] = None
+        self.last_doc: Optional[FTDCDoc] = None
+        self.previous_duration = 0.0
         self._min_duration = 0.0
         self._max_duration = 0.0
+        self._finalized = False
 
+    def add_doc(self, doc: FTDCDoc) -> None:
+        """Add a doc to the rollup."""
+        self._finalized = False
+        if "dur" in doc["timers"].keys():
+            duration = float(doc["timers"]["dur"])
+        else:
+            duration = float(doc["timers"]["duration"])
+        extracted_duration = duration - self.previous_duration
+        if not self.first_doc:
+            self._min_duration = extracted_duration
+            self._max_duration = extracted_duration
+        else:
+            self._min_duration = min(self._min_duration, extracted_duration)
+            self._max_duration = max(self._max_duration, extracted_duration)
+        start_ts = (
+            _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
+        )
+        self.previous_duration = duration
+        if not self.first_doc or self.first_doc["start_ts"] > start_ts:
+            doc = doc.copy()
+            doc["start_ts"] = start_ts
+            self.first_doc = doc
 
-    def _process(self) -> None:
-        """
-        Process the FTDC file and gather the statistics.
-
-        :return: None.
-        """
-        if self._processed:
-            return
-        try:
-            previous_duration = 0.0
-            for record in self._ftdc_data:
-                if "dur" in record["timers"].keys():
-                    duration = float(record["timers"]["dur"])
-                else:
-                    duration = float(record["timers"]["duration"])
-                extracted_duration = duration - previous_duration
-                if not self.first_record:
-                    self._min_duration = extracted_duration
-                    self._max_duration = extracted_duration
-                else:
-                    self._min_duration = min(self._min_duration, extracted_duration)
-                    self._max_duration = max(self._max_duration, extracted_duration)
-                start_ts = _ts_to_milliseconds(record["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
-                previous_duration = duration
-                if not self.first_record or self.first_record["start_ts"] > start_ts:
-                    record = record.copy()
-                    record["start_ts"] = start_ts
-                    self.first_record = record
-
-                self.last_record = record
-                self._gauges_workers_min = min(
-                    self._gauges_workers_min, record["gauges"]["workers"]
-                )
-                self._gauges_workers_max = min(
-                    self._gauges_workers_max, record["gauges"]["workers"]
-                )
-                self._extracted_durations.append(extracted_duration)
-
-            if not self.first_record and not self.last_record:
-                return
-            self._operations_total = self.last_record["counters"]["ops"]
-            self._documents_total = self.last_record["counters"]["n"]
-            self._size_total = self.last_record["counters"]["size"]
-            self._errors_total = self.last_record["counters"]["errors"]
-            self._timers_total = self.last_record["timers"]["total"]
-            if "dur" in self.last_record["timers"]:
-                self._duration_total = self.last_record["timers"]["dur"]
-            else:
-                self._duration_total = self.last_record["timers"]["duration"]
-            if self.last_record and self.first_record:
-                time_diff = _ts_to_milliseconds(self.last_record["ts"]) - self.first_record["start_ts"]
-                self._wall_time_total = time_diff / 1000
-        except KeyError as err:
-            raise ValueError(f"Missing field - {err} - duration in Genny client side FTDC record.")
-        self._processed = True
+        self.last_doc = doc
+        self._gauges_workers_min = min(
+            self._gauges_workers_min, doc["gauges"]["workers"]
+        )
+        self._gauges_workers_max = min(
+            self._gauges_workers_max, doc["gauges"]["workers"]
+        )
+        self._extracted_durations.append(extracted_duration)
 
     @property
     def all_statistics(self) -> List[Statistic]:
@@ -114,7 +88,7 @@ class ClientPerformanceStatistics:
 
         :return: All the statistics.
         """
-        self._process()
+        self._finalize()
         return [
             self.average_latency,
             self.average_size,
@@ -141,10 +115,13 @@ class ClientPerformanceStatistics:
 
         :return: Average latency.
         """
+        self._finalize()
         version = 3
         return Statistic(
             "AverageLatency",
-            self._duration_total / self._operations_total if self._operations_total > 0 else 0,
+            self._duration_total / self._operations_total
+            if self._operations_total > 0
+            else 0,
             version,
             False,
         )
@@ -156,10 +133,13 @@ class ClientPerformanceStatistics:
 
         :return: Average size.
         """
+        self._finalize()
         version = 3
         return Statistic(
             "AverageSize",
-            self._size_total / self._operations_total if self._operations_total > 0 else 0,
+            self._size_total / self._operations_total
+            if self._operations_total > 0
+            else 0,
             version,
             False,
         )
@@ -171,6 +151,7 @@ class ClientPerformanceStatistics:
 
         :return: Operation throughput.
         """
+        self._finalize()
         version = 5
         return Statistic(
             "OperationThroughput",
@@ -188,6 +169,7 @@ class ClientPerformanceStatistics:
 
         :return: Document throughput.
         """
+        self._finalize()
         version = 1
         return Statistic(
             "DocumentThroughput",
@@ -205,6 +187,7 @@ class ClientPerformanceStatistics:
 
         :return: Error rate.
         """
+        self._finalize()
         version = 5
         return Statistic(
             "ErrorRate",
@@ -222,6 +205,7 @@ class ClientPerformanceStatistics:
 
         :return: Size throughput.
         """
+        self._finalize()
         version = 5
         return Statistic(
             "SizeThroughput",
@@ -239,6 +223,7 @@ class ClientPerformanceStatistics:
 
         :return: Latency quantiles.
         """
+        self._finalize()
         version = 4
         quantile_names = [
             "Latency50thPercentile",
@@ -267,6 +252,7 @@ class ClientPerformanceStatistics:
 
         :return: Minimum workers.
         """
+        self._finalize()
         version = 3
         return Statistic(
             "WorkersMin",
@@ -282,6 +268,7 @@ class ClientPerformanceStatistics:
 
         :return: Maximum workers.
         """
+        self._finalize()
         version = 3
         return Statistic(
             "WorkersMax",
@@ -297,6 +284,7 @@ class ClientPerformanceStatistics:
 
         :return: Minimum latency.
         """
+        self._finalize()
         version = 4
         return Statistic(
             "LatencyMin",
@@ -312,6 +300,7 @@ class ClientPerformanceStatistics:
 
         :return: Maximum latency.
         """
+        self._finalize()
         version = 4
         return Statistic(
             "LatencyMax",
@@ -327,6 +316,7 @@ class ClientPerformanceStatistics:
 
         :return: Total duration.
         """
+        self._finalize()
         version = 5
         # Though duration total should have been sum of duration, the wall time is used below to
         # keep things consistent with legacy cedar.
@@ -344,6 +334,7 @@ class ClientPerformanceStatistics:
 
         :return: Total errors.
         """
+        self._finalize()
         version = 3
         return Statistic(
             "ErrorsTotal",
@@ -359,6 +350,7 @@ class ClientPerformanceStatistics:
 
         :return: Total operations.
         """
+        self._finalize()
         version = 3
         return Statistic(
             "OperationsTotal",
@@ -374,6 +366,7 @@ class ClientPerformanceStatistics:
 
         :return: Total documents.
         """
+        self._finalize()
         version = 0
         return Statistic(
             "DocumentsTotal",
@@ -389,6 +382,7 @@ class ClientPerformanceStatistics:
 
         :return: Total size.
         """
+        self._finalize()
         version = 3
         return Statistic(
             "SizeTotal",
@@ -404,6 +398,7 @@ class ClientPerformanceStatistics:
 
         :return: Total overhead.
         """
+        self._finalize()
         version = 1
         return Statistic(
             "OverheadTotal",
@@ -412,5 +407,32 @@ class ClientPerformanceStatistics:
             False,
         )
 
-def _ts_to_milliseconds(ts):
-    return ts.replace(tzinfo=timezone.utc).timestamp() * 1000
+    def _finalize(self) -> None:
+        """
+        Finalize values used across all calculations.
+
+        This is safe to call multiple times, will not act if redundant.
+        """
+        if self._finalized:
+            return
+        if self.first_doc is None or self.last_doc is None:
+            return
+        self._operations_total = self.last_doc["counters"]["ops"]
+        self._documents_total = self.last_doc["counters"]["n"]
+        self._size_total = self.last_doc["counters"]["size"]
+        self._errors_total = self.last_doc["counters"]["errors"]
+        self._timers_total = self.last_doc["timers"]["total"]
+        if "dur" in self.last_doc["timers"]:
+            self._duration_total = self.last_doc["timers"]["dur"]
+        else:
+            self._duration_total = self.last_doc["timers"]["duration"]
+        if self.last_doc and self.first_doc:
+            time_diff = (
+                _ts_to_milliseconds(self.last_doc["ts"]) - self.first_doc["start_ts"]
+            )
+            self._wall_time_total = time_diff / 1000
+        self._finalized = True
+
+
+def _ts_to_milliseconds(ts: datetime) -> int:
+    return int(ts.replace(tzinfo=timezone.utc).timestamp() * 1000)
