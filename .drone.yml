@@ -30,8 +30,9 @@ steps:
     PYPI_TOKEN:
       from_secret: PYPI_TOKEN
   commands:
-  - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-  - . $HOME/.poetry/env
+  - pip3 install --upgrade pip
+  - pip3 install poetry==1.2.0
+  - poetry --version
   - poetry config pypi-token.pypi $PYPI_TOKEN
   - poetry publish --build
   when:
