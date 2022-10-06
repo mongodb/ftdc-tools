@@ -1,76 +1,86 @@
-from typing import Dict, List, Tuple
+import json
 
-import pytest
+from datetime import timezone
+from typing import Any, Dict, List
 
-from aiofile import async_open
+import bson
 
-from src.ftdc_tools.decoder import FTDC
+from src.ftdc_tools.decode import (
+    MetricChunk,
+    _get_metrics_from_ref_doc,
+    decode_file_iter,
+    decode_iter,
+)
 
 
-def validateFTDCRecord(record: Dict[Tuple, int]) -> None:
-    required_keys = [
-        (b"ts",),
-        (b"id",),
-        (b"counters", b"n"),
-        (b"counters", b"ops"),
-        (b"counters", b"size"),
-        (b"counters", b"errors"),
-        (b"timers", b"dur"),
-        (b"timers", b"total"),
-        (b"gauges", b"state"),
-        (b"gauges", b"workers"),
-        (b"gauges", b"failed"),
+def test_ftdc_decode_file_iter(test_data: List[Dict]) -> None:
+    for test in test_data:
+        with open(test["ftdc_file"], "rb") as f, open(test["json_file"], "r") as j:
+            index = 0
+            for ftdc_doc in decode_file_iter(f):
+                json_doc = json.loads(j.readline())
+                ftdc_doc = ftdc_to_dict(ftdc_doc)
+                assert ftdc_doc == json_doc
+                index += 1
+            assert not j.read(1)  # Assert no more json.
+
+
+def test_ftdc_decode_iter(test_data: List[Dict]) -> None:
+    for test in test_data:
+        with open(test["ftdc_file"], "rb") as f:
+            whole_ftdc_file = f.read()
+        with open(test["json_file"], "r") as j:
+            index = 0
+            for ftdc_doc in decode_iter(whole_ftdc_file):
+                json_doc = json.loads(j.readline())
+                ftdc_doc = ftdc_to_dict(ftdc_doc)
+                assert ftdc_doc == json_doc
+                index += 1
+            assert not j.read(1)  # Assert no more json.
+
+
+def test_get_metrics_from_ref_doc() -> None:
+    ref_doc = {
+        "metricA": bson.int64.Int64(5),
+        "metricB": bson.int64.Int64(6),
+        "nestedMetric": {
+            "metricC": bson.int64.Int64(7),
+            "subnestedMetric": {"metricD": True},
+        },
+    }
+
+    expected = [
+        MetricChunk(key_path=("metricA",), values=[5], delta_constructor=lambda x: x),
+        MetricChunk(key_path=("metricB",), values=[6], delta_constructor=lambda x: x),
+        MetricChunk(
+            key_path=("nestedMetric", "metricC"),
+            values=[7],
+            delta_constructor=lambda x: x,
+        ),
+        MetricChunk(
+            key_path=("nestedMetric", "subnestedMetric", "metricD"),
+            values=[True],
+            delta_constructor=lambda x: x,
+        ),
     ]
-    assert len(record) == len(required_keys)
-    for key in required_keys:
-        assert key in record.keys()
-        assert type(record[key]) == int
+    actual = _get_metrics_from_ref_doc(ref_doc)
+    # Can't put the identity nested function in the function under test into the expected list.
+    assert len(expected) == len(actual)
+    for i, expected_chunk in enumerate(expected):
+        assert expected_chunk.key_path == actual[i].key_path
+        assert expected_chunk.values == actual[i].values
+        assert expected_chunk.delta_constructor(
+            756
+        ) == expected_chunk.delta_constructor(756)
 
 
-class TestFTDCDecode:
-    def test_ftdc_rollup_non_streaming(self, test_data: List[Dict]) -> None:
-        for test in test_data:
-            file = open(test["ftdc_file"], "rb")
-            ftdc_data = file.read()
-            file.close()
-            record_count = 0
-            for ftdc_row in FTDC(ftdc_data):
-                print(ftdc_row)
-                validateFTDCRecord(ftdc_row)
-                record_count += 1
+def test_get_metrics_from_empty_ref_doc() -> None:
+    assert _get_metrics_from_ref_doc({}) == []
 
-            assert record_count == test["doc_count"]
 
-    def test_ftdc_rollup_streaming(self, test_data: List[Dict]) -> None:
-        for test in test_data:
-            file = open(test["ftdc_file"], "rb")
-            record_count = 0
-            for ftdc_row in FTDC(file):
-                validateFTDCRecord(ftdc_row)
-                record_count += 1
-
-            assert record_count == test["doc_count"]
-
-    @pytest.mark.asyncio
-    async def test_async_ftdc_rollup_streaming(self, test_data: List[Dict]) -> None:
-        for test in test_data:
-            async with async_open(test["ftdc_file"], "rb") as file:
-                record_count = 0
-                async for ftdc_row in FTDC(file.iter_chunked(10000)):
-                    validateFTDCRecord(ftdc_row)
-                    record_count += 1
-
-            assert record_count == test["doc_count"]
-
-    @pytest.mark.asyncio
-    async def test_async_ftdc_rollup_streaming_with_memory(
-        self, test_data: List[Dict]
-    ) -> None:
-        for test in test_data:
-            async with async_open(test["ftdc_file"], "rb") as file:
-                record_count = 0
-                async for ftdc_row in FTDC(file.iter_chunked(1000), memory=10000):
-                    validateFTDCRecord(ftdc_row)
-                    record_count += 1
-
-            assert record_count == test["doc_count"]
+def ftdc_to_dict(ftdc_doc) -> Dict[str, Any]:
+    # This converts nested OrderedDicts to dicts.
+    # We can't just load the json file as an OrderedDict because apparently
+    # curator exports fields in a different order than pymongo. (I'd defer to pymongo.)
+    ftdc_doc["ts"] = int(ftdc_doc["ts"].replace(tzinfo=timezone.utc).timestamp() * 1000)
+    return json.loads(json.dumps(ftdc_doc))
