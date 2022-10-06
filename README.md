@@ -84,5 +84,7 @@ poetry run isort src tests
 poetry run autoflake --in-place --remove-all-unused-imports -r src tests
 ```
 
-### Committing
-In your PR, you MUST bump the semver package version in pyproject.toml.
+### Opening a PR
+You MUST bump the package version in pyproject.toml before requesting a review on your PR. Merging this PR will push the package to pypi. We use semver for package versioning.
+
+Read more about semver here: https://semver.org/
