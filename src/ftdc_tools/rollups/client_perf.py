@@ -52,11 +52,13 @@ class ClientPerformanceStatistics:
     def add_doc(self, doc: FTDCDoc) -> None:
         """Add a doc to the rollup."""
         self._finalized = False
+
         if "dur" in doc["timers"].keys():
             duration = float(doc["timers"]["dur"])
         else:
             duration = float(doc["timers"]["duration"])
         extracted_duration = duration - self.previous_duration
+
         if not self.first_doc:
             self._min_duration = extracted_duration
             self._max_duration = extracted_duration
@@ -67,10 +69,11 @@ class ClientPerformanceStatistics:
             _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
         )
         self.previous_duration = duration
+
         if not self.first_doc or self.first_doc["start_ts"] > start_ts:
-            doc = doc.copy()
+            new_first_doc = doc.copy()
             doc["start_ts"] = start_ts
-            self.first_doc = doc
+            self.first_doc = new_first_doc
 
         self.last_doc = doc
         self._gauges_workers_min = min(
@@ -152,7 +155,7 @@ class ClientPerformanceStatistics:
         :return: Operation throughput.
         """
         self._finalize()
-        version = 5
+        version = 4
         return Statistic(
             "OperationThroughput",
             self._operations_total / self._wall_time_total
