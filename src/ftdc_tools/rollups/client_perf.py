@@ -72,7 +72,7 @@ class ClientPerformanceStatistics:
 
         if not self.first_doc or self.first_doc["start_ts"] > start_ts:
             new_first_doc = doc.copy()
-            doc["start_ts"] = start_ts
+            new_first_doc["start_ts"] = start_ts
             self.first_doc = new_first_doc
 
         self.last_doc = doc
@@ -155,7 +155,7 @@ class ClientPerformanceStatistics:
         :return: Operation throughput.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "OperationThroughput",
             self._operations_total / self._wall_time_total
