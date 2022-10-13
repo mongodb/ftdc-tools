@@ -62,12 +62,18 @@ class ClientPerformanceStatistics:
         if not self.first_doc:
             self._min_duration = extracted_duration
             self._max_duration = extracted_duration
-            self.first_doc = doc
         else:
             self._min_duration = min(self._min_duration, extracted_duration)
             self._max_duration = max(self._max_duration, extracted_duration)
-
+        start_ts = (
+            _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
+        )
         self.previous_duration = duration
+
+        if not self.first_doc or self.first_doc["start_ts"] > start_ts:
+            new_first_doc = doc.copy()
+            new_first_doc["start_ts"] = start_ts
+            self.first_doc = new_first_doc
 
         self.last_doc = doc
         self._gauges_workers_min = min(
@@ -149,7 +155,7 @@ class ClientPerformanceStatistics:
         :return: Operation throughput.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "OperationThroughput",
             self._operations_total / self._wall_time_total
@@ -167,7 +173,7 @@ class ClientPerformanceStatistics:
         :return: Document throughput.
         """
         self._finalize()
-        version = 0
+        version = 1
         return Statistic(
             "DocumentThroughput",
             self._documents_total / self._wall_time_total
@@ -185,7 +191,7 @@ class ClientPerformanceStatistics:
         :return: Error rate.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "ErrorRate",
             self._errors_total / self._wall_time_total
@@ -203,7 +209,7 @@ class ClientPerformanceStatistics:
         :return: Size throughput.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "SizeThroughput",
             self._size_total / self._wall_time_total
@@ -314,7 +320,7 @@ class ClientPerformanceStatistics:
         :return: Total duration.
         """
         self._finalize()
-        version = 4
+        version = 5
         # Though duration total should have been sum of duration, the wall time is used below to
         # keep things consistent with legacy cedar.
         return Statistic(
@@ -424,8 +430,8 @@ class ClientPerformanceStatistics:
         else:
             self._duration_total = self.last_doc["timers"]["duration"]
         if self.last_doc and self.first_doc:
-            time_diff = _ts_to_milliseconds(self.last_doc["ts"]) - _ts_to_milliseconds(
-                self.first_doc["ts"]
+            time_diff = (
+                _ts_to_milliseconds(self.last_doc["ts"]) - self.first_doc["start_ts"]
             )
             self._wall_time_total = time_diff / 1000
         self._finalized = True
