@@ -22,6 +22,14 @@ class Statistic:
     user_submitted: bool
 
 
+@dataclass
+class SummaryStatistic:
+    """A summary statistic."""
+
+    min: float
+    max: float
+
+
 class ClientPerformanceStatistics:
     """
     Load client-side perf statistics.
@@ -58,7 +66,12 @@ class ClientPerformanceStatistics:
         else:
             duration = float(doc["timers"]["duration"])
         extracted_duration = duration - self.previous_duration
-
+        number_of_ops = doc["counters"]["ops"] - self.previous_ops
+        number_of_ops = (
+            1 if number_of_ops == 0 else number_of_ops
+        )  # For multi-operation events that have same ops
+        self._operations_total = self._operations_total + number_of_ops
+        self.previous_ops = doc["counters"]["ops"]
         if not self.first_doc:
             self._min_duration = extracted_duration
             self._max_duration = extracted_duration
