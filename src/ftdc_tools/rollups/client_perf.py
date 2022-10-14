@@ -21,13 +21,6 @@ class Statistic:
     version: int
     user_submitted: bool
 
-@dataclass
-class SummaryStatistic:
-    """A summary statistic."""
-
-    min: float
-    max: float
-
 
 class ClientPerformanceStatistics:
     """
@@ -56,17 +49,6 @@ class ClientPerformanceStatistics:
         self._min_duration = 0.0
         self._max_duration = 0.0
         self._finalized = False
-        self._latency_summary = SummaryStatistic(0.0, 0.0)
-
-    def _calculate_latency_summary(
-        self,
-        ops_count: int,
-        duration: float,
-        latency_summary: SummaryStatistic,
-    ) -> SummaryStatistic:
-        min_latency = min(duration / ops_count, latency_summary.min)
-        max_latency = max(duration / ops_count, latency_summary.max)
-        return SummaryStatistic(min_latency, max_latency)
 
     def add_doc(self, doc: FTDCDoc) -> None:
         """Add a doc to the rollup."""
@@ -77,12 +59,12 @@ class ClientPerformanceStatistics:
         else:
             duration = float(doc["timers"]["duration"])
         extracted_duration = duration - self.previous_duration
-        number_of_ops = record[(b"counters", b"ops")] - previous_ops
+        number_of_ops = doc["counters"]["ops"] - self.previous_ops
         number_of_ops = (
             1 if number_of_ops == 0 else number_of_ops
         )  # For multi-operation events that have same ops
         self._operations_total = self._operations_total + number_of_ops
-        self.previous_ops = record[(b"counters", b"ops")]
+        self.previous_ops = doc["counters"]["ops"]
         if not self.first_doc:
             first_latency = extracted_duration / number_of_ops
             self._latency_summary = SummaryStatistic(first_latency, first_latency)
