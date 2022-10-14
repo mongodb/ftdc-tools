@@ -45,7 +45,6 @@ class ClientPerformanceStatistics:
         self.first_doc: Optional[FTDCDoc] = None
         self.last_doc: Optional[FTDCDoc] = None
         self.previous_duration = 0.0
-        self.previous_ops = 0
         self._min_duration = 0.0
         self._max_duration = 0.0
         self._finalized = False
@@ -59,25 +58,27 @@ class ClientPerformanceStatistics:
         else:
             duration = float(doc["timers"]["duration"])
         extracted_duration = duration - self.previous_duration
+<<<<<<< HEAD
         number_of_ops = doc["counters"]["ops"] - self.previous_ops
         number_of_ops = (
             1 if number_of_ops == 0 else number_of_ops
         )  # For multi-operation events that have same ops
         self._operations_total = self._operations_total + number_of_ops
         self.previous_ops = doc["counters"]["ops"]
+=======
+
+>>>>>>> parent of b3dd873 (EVG-17882 revert)
         if not self.first_doc:
-            first_latency = extracted_duration / number_of_ops
-            self._latency_summary = SummaryStatistic(first_latency, first_latency)
+            self._min_duration = extracted_duration
+            self._max_duration = extracted_duration
         else:
-            self._latency_summary = self._calculate_latency_summary(
-                number_of_ops,
-                extracted_duration,
-                self._latency_summary,
-            )
+            self._min_duration = min(self._min_duration, extracted_duration)
+            self._max_duration = max(self._max_duration, extracted_duration)
         start_ts = (
             _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
         )
         self.previous_duration = duration
+
         if not self.first_doc or self.first_doc["start_ts"] > start_ts:
             new_first_doc = doc.copy()
             new_first_doc["start_ts"] = start_ts
@@ -90,9 +91,7 @@ class ClientPerformanceStatistics:
         self._gauges_workers_max = min(
             self._gauges_workers_max, doc["gauges"]["workers"]
         )
-        self._extracted_durations = self._extracted_durations + number_of_ops * [
-            extracted_duration / number_of_ops
-        ]
+        self._extracted_durations.append(extracted_duration)
 
     @property
     def all_statistics(self) -> List[Statistic]:
@@ -301,7 +300,7 @@ class ClientPerformanceStatistics:
         version = 4
         return Statistic(
             "LatencyMin",
-            self._latency_summary.min,
+            self._min_duration if len(self._extracted_durations) > 0 else 0,
             version,
             False,
         )
@@ -317,7 +316,7 @@ class ClientPerformanceStatistics:
         version = 4
         return Statistic(
             "LatencyMax",
-            self._latency_summary.max,
+            self._max_duration if len(self._extracted_durations) > 0 else 0,
             version,
             False,
         )
