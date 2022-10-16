@@ -56,8 +56,18 @@ class ClientPerformanceStatistics:
         self._min_duration = 0.0
         self._max_duration = 0.0
         self._finalized = False
-        self.previous_ops = 0.0
+        self.previous_ops = 0
         self._latency_summary = SummaryStatistic(0.0, 0.0)
+
+    def _calculate_latency_summary(
+        self,
+        ops_count: int,
+        duration: float,
+        latency_summary: SummaryStatistic,
+    ) -> SummaryStatistic:
+        min_latency = min(duration / ops_count, latency_summary.min)
+        max_latency = max(duration / ops_count, latency_summary.max)
+        return SummaryStatistic(min_latency, max_latency)
 
     def add_doc(self, doc: FTDCDoc) -> None:
         """Add a doc to the rollup."""
@@ -75,11 +85,14 @@ class ClientPerformanceStatistics:
         self._operations_total = self._operations_total + number_of_ops
         self.previous_ops = doc["counters"]["ops"]
         if not self.first_doc:
-            self._min_duration = extracted_duration
-            self._max_duration = extracted_duration
+            first_latency = extracted_duration / number_of_ops
+            self._latency_summary = SummaryStatistic(first_latency, first_latency)
         else:
-            self._min_duration = min(self._min_duration, extracted_duration)
-            self._max_duration = max(self._max_duration, extracted_duration)
+            self._latency_summary = self._calculate_latency_summary(
+                number_of_ops,
+                extracted_duration,
+                self._latency_summary,
+            )
         start_ts = (
             _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
         )
@@ -97,7 +110,9 @@ class ClientPerformanceStatistics:
         self._gauges_workers_max = min(
             self._gauges_workers_max, doc["gauges"]["workers"]
         )
-        self._extracted_durations.append(extracted_duration)
+        self._extracted_durations = self._extracted_durations + number_of_ops * [
+            extracted_duration / number_of_ops
+        ]
 
     @property
     def all_statistics(self) -> List[Statistic]:
@@ -303,10 +318,10 @@ class ClientPerformanceStatistics:
         :return: Minimum latency.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "LatencyMin",
-            self._min_duration if len(self._extracted_durations) > 0 else 0,
+            self._latency_summary.min,
             version,
             False,
         )
@@ -319,10 +334,10 @@ class ClientPerformanceStatistics:
         :return: Maximum latency.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "LatencyMax",
-            self._max_duration if len(self._extracted_durations) > 0 else 0,
+            self._latency_summary.max,
             version,
             False,
         )
@@ -435,7 +450,6 @@ class ClientPerformanceStatistics:
             return
         if self.first_doc is None or self.last_doc is None:
             return
-        self._operations_total = self.last_doc["counters"]["ops"]
         self._documents_total = self.last_doc["counters"]["n"]
         self._size_total = self.last_doc["counters"]["size"]
         self._errors_total = self.last_doc["counters"]["errors"]

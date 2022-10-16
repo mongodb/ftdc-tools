@@ -250,3 +250,166 @@ def mock_non_linear_ftdc_stream_output() -> list:
             "gauges": {"state": 0, "workers": 1, "failed": 0},
         },
     ]
+
+
+@pytest.fixture
+def mock_parallel_ops_json_output() -> str:
+    """Mocks a FTDC output where all operations are run parallel. ops is 0 for all rows."""
+    return [
+        {
+            "ts": datetime.fromtimestamp(1643735930.767),
+            "id": 0,
+            "counters": {
+                "n": 1,
+                "ops": 0,
+                "size": 0,
+                "errors": 0,
+            },
+            "timers": {"dur": 366, "total": 180009841025},
+            "gauges": {
+                "state": 0,
+                "workers": 1,
+                "failed": 0,
+            },
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.768),
+            "id": 1,
+            "counters": {"n": 2, "ops": 0, "size": 10, "errors": 4},
+            "timers": {"dur": 722, "total": 180009845702},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.769),
+            "id": 2,
+            "counters": {"n": 3, "ops": 0, "size": 10, "errors": 0},
+            "timers": {"dur": 1603, "total": 180009848249},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.770),
+            "id": 3,
+            "counters": {"n": 4, "ops": 0, "size": 10, "errors": 0},
+            "timers": {"dur": 1999, "total": 180009926035},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.771),
+            "id": 4,
+            "counters": {"n": 5, "ops": 0, "size": 15, "errors": 0},
+            "timers": {"dur": 2387, "total": 180009928537},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.772),
+            "id": 5,
+            "counters": {"n": 6, "ops": 0, "size": 15, "errors": 0},
+            "timers": {"dur": 2785, "total": 180009953282},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.773),
+            "id": 6,
+            "counters": {"n": 7, "ops": 0, "size": 15, "errors": 1},
+            "timers": {"dur": 3133, "total": 180009961887},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.774),
+            "id": 7,
+            "counters": {"n": 8, "ops": 0, "size": 16, "errors": 0},
+            "timers": {"dur": 3555, "total": 180009966538},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.775),
+            "id": 8,
+            "counters": {"n": 9, "ops": 0, "size": 17, "errors": 0},
+            "timers": {"dur": 3854, "total": 180009976167},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.776),
+            "id": 9,
+            "counters": {"n": 10, "ops": 0, "size": 18, "errors": 0},
+            "timers": {"dur": 4156, "total": 180009978028},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+    ]
+
+
+@pytest.fixture
+def mock_multiple_parallel_ops_json_output() -> str:
+    """Mocks a FTDC output where all operations are run parallel. ops is 0 for all rows."""
+    return [
+        {
+            "ts": datetime.fromtimestamp(1643735930.767),
+            "id": 0,
+            "counters": {"n": 1, "ops": 0, "size": 0, "errors": 0},
+            "timers": {"dur": 366, "total": 180009841025},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.768),
+            "id": 1,
+            "counters": {"n": 2, "ops": 0, "size": 10, "errors": 4},
+            "timers": {"dur": 722, "total": 180009845702},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.769),
+            "id": 2,
+            "counters": {"n": 3, "ops": 0, "size": 10, "errors": 0},
+            "timers": {"dur": 1603, "total": 180009848249},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.770),
+            "id": 3,
+            "counters": {"n": 4, "ops": 1, "size": 10, "errors": 0},
+            "timers": {"dur": 1999, "total": 180009926035},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.771),
+            "id": 4,
+            "counters": {"n": 5, "ops": 3, "size": 15, "errors": 0},
+            "timers": {"dur": 2387, "total": 180009928537},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.772),
+            "id": 5,
+            "counters": {"n": 6, "ops": 10, "size": 15, "errors": 0},
+            "timers": {"dur": 2785, "total": 180009953282},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.773),
+            "id": 6,
+            "counters": {"n": 7, "ops": 11, "size": 15, "errors": 1},
+            "timers": {"dur": 3133, "total": 180009961887},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.774),
+            "id": 7,
+            "counters": {"n": 8, "ops": 11, "size": 16, "errors": 0},
+            "timers": {"dur": 3555, "total": 180009966538},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.775),
+            "id": 8,
+            "counters": {"n": 9, "ops": 11, "size": 17, "errors": 0},
+            "timers": {"dur": 3854, "total": 180009976167},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+        {
+            "ts": datetime.fromtimestamp(1643735930.776),
+            "id": 9,
+            "counters": {"n": 10, "ops": 11, "size": 18, "errors": 0},
+            "timers": {"dur": 4156, "total": 180009978028},
+            "gauges": {"state": 0, "workers": 1, "failed": 0},
+        },
+    ]
