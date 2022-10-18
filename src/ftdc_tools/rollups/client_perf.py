@@ -22,14 +22,6 @@ class Statistic:
     user_submitted: bool
 
 
-@dataclass
-class SummaryStatistic:
-    """A summary statistic."""
-
-    min: float
-    max: float
-
-
 class ClientPerformanceStatistics:
     """
     Load client-side perf statistics.
@@ -56,18 +48,6 @@ class ClientPerformanceStatistics:
         self._min_duration = 0.0
         self._max_duration = 0.0
         self._finalized = False
-        self.previous_ops = 0
-        self._latency_summary = SummaryStatistic(0.0, 0.0)
-
-    def _calculate_latency_summary(
-        self,
-        ops_count: int,
-        duration: float,
-        latency_summary: SummaryStatistic,
-    ) -> SummaryStatistic:
-        min_latency = min(duration / ops_count, latency_summary.min)
-        max_latency = max(duration / ops_count, latency_summary.max)
-        return SummaryStatistic(min_latency, max_latency)
 
     def add_doc(self, doc: FTDCDoc) -> None:
         """Add a doc to the rollup."""
@@ -78,21 +58,22 @@ class ClientPerformanceStatistics:
         else:
             duration = float(doc["timers"]["duration"])
         extracted_duration = duration - self.previous_duration
-        number_of_ops = doc["counters"]["ops"] - self.previous_ops
-        number_of_ops = (
-            1 if number_of_ops == 0 else number_of_ops
-        )  # For multi-operation events that have same ops
-        self._operations_total = self._operations_total + number_of_ops
-        self.previous_ops = doc["counters"]["ops"]
+
         if not self.first_doc:
             self._min_duration = extracted_duration
             self._max_duration = extracted_duration
-            self.first_doc = doc
         else:
             self._min_duration = min(self._min_duration, extracted_duration)
             self._max_duration = max(self._max_duration, extracted_duration)
-
+        start_ts = (
+            _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
+        )
         self.previous_duration = duration
+
+        if not self.first_doc or self.first_doc["start_ts"] > start_ts:
+            new_first_doc = doc.copy()
+            new_first_doc["start_ts"] = start_ts
+            self.first_doc = new_first_doc
 
         self.last_doc = doc
         self._gauges_workers_min = min(
@@ -101,9 +82,7 @@ class ClientPerformanceStatistics:
         self._gauges_workers_max = min(
             self._gauges_workers_max, doc["gauges"]["workers"]
         )
-        self._extracted_durations = self._extracted_durations + number_of_ops * [
-            extracted_duration / number_of_ops
-        ]
+        self._extracted_durations.append(extracted_duration)
 
     @property
     def all_statistics(self) -> List[Statistic]:
@@ -176,7 +155,7 @@ class ClientPerformanceStatistics:
         :return: Operation throughput.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "OperationThroughput",
             self._operations_total / self._wall_time_total
@@ -194,7 +173,7 @@ class ClientPerformanceStatistics:
         :return: Document throughput.
         """
         self._finalize()
-        version = 0
+        version = 1
         return Statistic(
             "DocumentThroughput",
             self._documents_total / self._wall_time_total
@@ -212,7 +191,7 @@ class ClientPerformanceStatistics:
         :return: Error rate.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "ErrorRate",
             self._errors_total / self._wall_time_total
@@ -230,7 +209,7 @@ class ClientPerformanceStatistics:
         :return: Size throughput.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "SizeThroughput",
             self._size_total / self._wall_time_total
@@ -309,10 +288,10 @@ class ClientPerformanceStatistics:
         :return: Minimum latency.
         """
         self._finalize()
-        version = 5
+        version = 4
         return Statistic(
             "LatencyMin",
-            self._latency_summary.min,
+            self._min_duration if len(self._extracted_durations) > 0 else 0,
             version,
             False,
         )
@@ -325,10 +304,10 @@ class ClientPerformanceStatistics:
         :return: Maximum latency.
         """
         self._finalize()
-        version = 5
+        version = 4
         return Statistic(
             "LatencyMax",
-            self._latency_summary.max,
+            self._max_duration if len(self._extracted_durations) > 0 else 0,
             version,
             False,
         )
@@ -341,7 +320,7 @@ class ClientPerformanceStatistics:
         :return: Total duration.
         """
         self._finalize()
-        version = 4
+        version = 5
         # Though duration total should have been sum of duration, the wall time is used below to
         # keep things consistent with legacy cedar.
         return Statistic(
@@ -441,6 +420,7 @@ class ClientPerformanceStatistics:
             return
         if self.first_doc is None or self.last_doc is None:
             return
+        self._operations_total = self.last_doc["counters"]["ops"]
         self._documents_total = self.last_doc["counters"]["n"]
         self._size_total = self.last_doc["counters"]["size"]
         self._errors_total = self.last_doc["counters"]["errors"]
@@ -450,8 +430,8 @@ class ClientPerformanceStatistics:
         else:
             self._duration_total = self.last_doc["timers"]["duration"]
         if self.last_doc and self.first_doc:
-            time_diff = _ts_to_milliseconds(self.last_doc["ts"]) - _ts_to_milliseconds(
-                self.first_doc["ts"]
+            time_diff = (
+                _ts_to_milliseconds(self.last_doc["ts"]) - self.first_doc["start_ts"]
             )
             self._wall_time_total = time_diff / 1000
         self._finalized = True
