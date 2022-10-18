@@ -141,11 +141,9 @@ def _get_metrics_from_ref_doc(ref_doc: FTDCDoc) -> List[MetricChunk]:
 
 
 def _get_paths_and_vals(
-    d: MutableMapping[Any, BSONValue], key_path: List[str] = None
+    d: MutableMapping[Any, BSONValue], key_path: List[str] = []
 ) -> List[Tuple[KeyPath, BSONSingleValue]]:
     """Return the paths to all leaves and the leaf-level values themselves."""
-    if key_path is None:
-        key_path = []
     output = []
     for key, value in d.items():
         key_path.append(key)
