@@ -220,7 +220,6 @@ class ClientPerformanceStatistics:
 
         :return: Latency quantiles.
         """
-        self._extracted_durations.sort()
         self._finalize()
         version = 4
         quantile_names = [
