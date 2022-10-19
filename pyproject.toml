@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ftdc-tools"
-version = "0.4.0"
+version = "0.5.0"
 description = ""
 authors = [
     "Alexander Costas <alexander.costas@mongodb.com>",
@@ -10,7 +10,7 @@ authors = [
 [tool.poetry.dependencies]
 python = ">=3.9,<3.11"
 pymongo = "^4.2.0"
-scipy = "^1.9.1"
+numpy = "^1.23.4"
 
 [tool.poetry.dev-dependencies]
 pytest = "^7.1.2"

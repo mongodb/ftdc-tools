@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
 
-from scipy.stats.mstats import mquantiles
+import numpy as np
 
 from ftdc_tools.decode import FTDCDoc
 
@@ -231,11 +231,10 @@ class ClientPerformanceStatistics:
         ]
         quantiles = [0, 0, 0, 0, 0]
         if len(self._extracted_durations) > 0:
-            quantiles = mquantiles(
+            quantiles = np.quantile(  # type: ignore
                 self._extracted_durations,
-                prob=[0.5, 0.8, 0.9, 0.95, 0.99],
-                alphap=1 / 3,
-                betap=1 / 3,
+                [0.5, 0.8, 0.9, 0.95, 0.99],
+                method="median_unbiased",
             )
         all_quantiles = []
         for name, value in zip(quantile_names, quantiles):
