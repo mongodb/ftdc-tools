@@ -426,14 +426,14 @@ def test_ftdc_statistic_parallel_ops(
     expected_response = [
         Statistic(
             name="AverageLatency",
-            value=415.6,
+            value=46.17777777777778,
             version=3,
             user_submitted=False,
         ),
-        Statistic(name="AverageSize", value=1.8, version=3, user_submitted=False),
+        Statistic(name="AverageSize", value=0.2, version=3, user_submitted=False),
         Statistic(
             name="OperationThroughput",
-            value=1111.0809711108097,
+            value=9999.728739997287,
             version=5,
             user_submitted=False,
         ),
@@ -452,10 +452,10 @@ def test_ftdc_statistic_parallel_ops(
         ),
         Statistic(name="WorkersMin", value=0, version=3, user_submitted=False),
         Statistic(name="WorkersMax", value=0, version=3, user_submitted=False),
-        Statistic(name="LatencyMin", value=299.0, version=5, user_submitted=False),
+        Statistic(name="LatencyMin", value=17.4, version=5, user_submitted=False),
         Statistic(
             name="LatencyMax",
-            value=881.0,
+            value=366.0,
             version=5,
             user_submitted=False,
         ),
@@ -466,7 +466,7 @@ def test_ftdc_statistic_parallel_ops(
             user_submitted=False,
         ),
         Statistic(name="ErrorsTotal", value=0, version=3, user_submitted=False),
-        Statistic(name="OperationsTotal", value=10, version=3, user_submitted=False),
+        Statistic(name="OperationsTotal", value=90, version=3, user_submitted=False),
         Statistic(name="DocumentsTotal", value=10, version=0, user_submitted=False),
         Statistic(name="SizeTotal", value=18, version=3, user_submitted=False),
         Statistic(
@@ -477,31 +477,31 @@ def test_ftdc_statistic_parallel_ops(
         ),
         Statistic(
             name="Latency50thPercentile",
-            value=377.0,
+            value=38.8,
             version=4,
             user_submitted=False,
         ),
         Statistic(
             name="Latency80thPercentile",
-            value=412.4,
+            value=42.2,
             version=4,
             user_submitted=False,
         ),
         Statistic(
             name="Latency90thPercentile",
-            value=712.6999999999998,
+            value=71.2,
             version=4,
             user_submitted=False,
         ),
         Statistic(
             name="Latency95thPercentile",
-            value=881.0,
+            value=176.2,
             version=4,
             user_submitted=False,
         ),
         Statistic(
             name="Latency99thPercentile",
-            value=881.0,
+            value=176.2,
             version=4,
             user_submitted=False,
         ),
@@ -514,102 +514,16 @@ def test_ftdc_statistic_parallel_ops(
     assert all_statistics == expected_response
 
 
-def test_ftdc_statistic_multiple_parallel_ops(
-    mock_multiple_parallel_ops_json_output: List[FTDCDoc],
+def test_ftdc_statistic_invalid_ops(
+    mock_invalid_ops_json_output: List[FTDCDoc],
 ) -> None:
-    expected_response = [
-        Statistic(
-            name="AverageLatency",
-            value=244.47058823529412,
-            version=3,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="AverageSize",
-            value=1.0588235294117647,
-            version=3,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="OperationThroughput",
-            value=1888.8376508883764,
-            version=5,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="DocumentThroughput",
-            value=1111.0809711108097,
-            version=1,
-            user_submitted=False,
-        ),
-        Statistic(name="ErrorRate", value=0.0, version=5, user_submitted=False),
-        Statistic(
-            name="SizeThroughput",
-            value=1999.9457479994574,
-            version=5,
-            user_submitted=False,
-        ),
-        Statistic(name="WorkersMin", value=0, version=3, user_submitted=False),
-        Statistic(name="WorkersMax", value=0, version=3, user_submitted=False),
-        Statistic(
-            name="LatencyMin", value=56.857142857142854, version=5, user_submitted=False
-        ),
-        Statistic(
-            name="LatencyMax",
-            value=881.0,
-            version=5,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="DurationTotal",
-            value=9000244.140625,
-            version=5,
-            user_submitted=False,
-        ),
-        Statistic(name="ErrorsTotal", value=0, version=3, user_submitted=False),
-        Statistic(name="OperationsTotal", value=17, version=3, user_submitted=False),
-        Statistic(name="DocumentsTotal", value=10, version=0, user_submitted=False),
-        Statistic(name="SizeTotal", value=18, version=3, user_submitted=False),
-        Statistic(
-            name="OverheadTotal",
-            value=180009973872,
-            version=1,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="Latency50thPercentile",
-            value=194.0,
-            version=4,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="Latency80thPercentile",
-            value=372.0,
-            version=4,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="Latency90thPercentile",
-            value=420.2666666666667,
-            version=4,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="Latency95thPercentile",
-            value=789.1999999999987,
-            version=4,
-            user_submitted=False,
-        ),
-        Statistic(
-            name="Latency99thPercentile",
-            value=881.0,
-            version=4,
-            user_submitted=False,
-        ),
-    ]
-    roll = ClientPerformanceStatistics()
-    for doc in mock_multiple_parallel_ops_json_output:
-        roll.add_doc(doc)
-    all_statistics = roll.all_statistics
+    with pytest.raises(ValueError) as e_info:
+        roll = ClientPerformanceStatistics()
+        for doc in mock_invalid_ops_json_output:
+            roll.add_doc(doc)
+        all_statistics = roll.all_statistics
 
-    assert all_statistics == expected_response
+    assert (
+        str(e_info)
+        == "<ExceptionInfo ValueError('Invalid FTDC data. Number of ops not icremented. There is a possible misreporting for perf data.') tblen=2>"
+    )

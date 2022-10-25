@@ -65,16 +65,19 @@ class ClientPerformanceStatistics:
             duration = float(doc["timers"]["duration"])
         extracted_duration = duration - self.previous_duration
         number_of_ops = doc["counters"]["ops"] - self.previous_ops
-        number_of_ops = (
-            1 if number_of_ops == 0 else number_of_ops
-        )  # For multi-operation events that have same ops
-        self._operations_total = self._operations_total + number_of_ops
         self.previous_ops = doc["counters"]["ops"]
         if not self.first_doc:
-            first_latency = extracted_duration / number_of_ops
-            self._max_latency = self._min_latency = first_latency
+            op_duration = extracted_duration
+            if number_of_ops > 1:
+                op_duration = extracted_duration / number_of_ops
+            self._max_latency = self._min_latency = op_duration
         else:
+            if number_of_ops == 0:
+                raise ValueError(
+                    "Invalid FTDC data. Number of ops not icremented. There is a possible misreporting for perf data."
+                )
             self._calculate_latency_summary(number_of_ops, extracted_duration)
+            op_duration = extracted_duration / number_of_ops
         start_ts = (
             _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
         )
@@ -92,10 +95,6 @@ class ClientPerformanceStatistics:
         self._gauges_workers_max = min(
             self._gauges_workers_max, doc["gauges"]["workers"]
         )
-        # self._extracted_durations = self._extracted_durations + number_of_ops * [
-        #     extracted_duration / number_of_ops
-        # ]
-        op_duration = extracted_duration / number_of_ops
         for _ in range(number_of_ops):
             self._extracted_durations.append(op_duration)
 
@@ -435,6 +434,7 @@ class ClientPerformanceStatistics:
             return
         if self.first_doc is None or self.last_doc is None:
             return
+        self._operations_total = self.last_doc["counters"]["ops"]
         self._documents_total = self.last_doc["counters"]["n"]
         self._size_total = self.last_doc["counters"]["size"]
         self._errors_total = self.last_doc["counters"]["errors"]
