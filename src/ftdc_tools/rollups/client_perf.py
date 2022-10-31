@@ -1,5 +1,4 @@
 """Statistics calculations for client-side performance data."""
-
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -48,6 +47,13 @@ class ClientPerformanceStatistics:
         self._min_duration = 0.0
         self._max_duration = 0.0
         self._finalized = False
+        self.previous_ops = 0
+        self._min_latency = 0.0
+        self._max_latency = 0.0
+
+    def _calculate_latency_summary(self, ops_count: int, duration: float) -> None:
+        self._min_latency = min(duration / ops_count, self._min_latency)
+        self._max_latency = max(duration / ops_count, self._max_latency)
 
     def add_doc(self, doc: FTDCDoc) -> None:
         """Add a doc to the rollup."""
@@ -58,13 +64,20 @@ class ClientPerformanceStatistics:
         else:
             duration = float(doc["timers"]["duration"])
         extracted_duration = duration - self.previous_duration
-
+        number_of_ops = doc["counters"]["ops"] - self.previous_ops
+        self.previous_ops = doc["counters"]["ops"]
         if not self.first_doc:
-            self._min_duration = extracted_duration
-            self._max_duration = extracted_duration
+            op_duration = extracted_duration
+            if number_of_ops > 1:
+                op_duration = extracted_duration / number_of_ops
+            self._max_latency = self._min_latency = op_duration
         else:
-            self._min_duration = min(self._min_duration, extracted_duration)
-            self._max_duration = max(self._max_duration, extracted_duration)
+            if number_of_ops == 0:
+                raise ValueError(
+                    "Invalid FTDC data. Number of ops not icremented. There is a possible misreporting for perf data."
+                )
+            self._calculate_latency_summary(number_of_ops, extracted_duration)
+            op_duration = extracted_duration / number_of_ops
         start_ts = (
             _ts_to_milliseconds(doc["ts"]) - (extracted_duration) / NANO_TO_MILLISECONDS
         )
@@ -82,7 +95,8 @@ class ClientPerformanceStatistics:
         self._gauges_workers_max = min(
             self._gauges_workers_max, doc["gauges"]["workers"]
         )
-        self._extracted_durations.append(extracted_duration)
+        for _ in range(number_of_ops):
+            self._extracted_durations.append(op_duration)
 
     @property
     def all_statistics(self) -> List[Statistic]:
@@ -288,10 +302,10 @@ class ClientPerformanceStatistics:
         :return: Minimum latency.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "LatencyMin",
-            self._min_duration if len(self._extracted_durations) > 0 else 0,
+            self._min_latency,
             version,
             False,
         )
@@ -304,10 +318,10 @@ class ClientPerformanceStatistics:
         :return: Maximum latency.
         """
         self._finalize()
-        version = 4
+        version = 5
         return Statistic(
             "LatencyMax",
-            self._max_duration if len(self._extracted_durations) > 0 else 0,
+            self._max_latency,
             version,
             False,
         )
